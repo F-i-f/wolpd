@@ -1,5 +1,18 @@
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
+	* Makefile.am (install-data-local uninstall-local): Create.
+	(install-data-local-init uninstall-local-init): (Un)install
+	systemd service file, or if not found, the init file.
+	(install-data-local-sysconfig uninstall-local-sysconfig): Install
+	sysconfig file.
+	(wolpd.init wolpd.service): Substitute @sysconfdir@.
+	(.PHONY): Add (un)install-data-local* targets.
+
+	* wolpd.service.in (EnvironmentFile): Use @sysconfdir@ for the
+	sysconfig/wolpd path.
+
+	* wolpd.init.in: Use @sysconfdir@ for the sysconfig/wolpd path.
+
 	* wolpd.service.in (ExecStart): Use @sbindir@.
 
 	* Makefile.am (EXTRA_DIST): Rename wolpd.service to wolpd.service.in.

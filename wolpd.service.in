@@ -4,7 +4,7 @@ Documentation=man:wolpd(8) https://github.com/simon3z/wolpd
 After=syslog.target network.target
 
 [Service]
-EnvironmentFile=-/etc/sysconfig/wolpd
+EnvironmentFile=-@sysconfdir@/sysconfig/wolpd
 ExecStart=@sbindir@/wolpd -f $WOLPDARGS
 
 [Install]

@@ -24,7 +24,7 @@
 
 exec="@sbindir@/wolpd"
 
-[ -e /etc/sysconfig/wolpd ] && . /etc/sysconfig/wolpd
+[ -e "@sysconfdir@/sysconfig/wolpd" ] && . "@sysconfdir@/sysconfig/wolpd"
 
 lockfile=/var/lock/subsys/wolpd
 
