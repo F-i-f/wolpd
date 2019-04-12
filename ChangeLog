@@ -1,7 +1,11 @@
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.service.in (ExecStart): Use @sbindir@.
+
 	* Makefile.am (EXTRA_DIST): Rename wolpd.service to wolpd.service.in.
 	(EXTRA_DIST): Add missing wolpd.init.in.
+	(generated_files): Add wolpd.service.
+	(wolpd.service): Add, generate with sed from .in.
 
 	* wolpd.service: Rename to woldp.service.in.
 

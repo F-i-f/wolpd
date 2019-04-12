@@ -14,17 +14,17 @@ wolpd_SOURCES = wolpd.c
 
 man8_MANS     = wolpd.8
 
-generated_files = wolpd.8 wolpd.init
+generated_files = wolpd.8 wolpd.init wolpd.service
 
 all-local: $(generated_files)
 
 wolpd.8: wolpd
 	$(HELP2MAN) -s 8 -N -I $(srcdir)/wolpd.x -o $@ ./wolpd
 
-wolpd.init: Makefile
-       sed -e 's![@]sbindir@!$(sbindir)!g' $(srcdir)/$@.in > $@
+wolpd.init wolpd.service: Makefile
+	sed -e 's![@]sbindir@!$(sbindir)!g' $(srcdir)/$@.in > $@
 
 wolpd.init: wolpd.init.in
-
+wolpd.service: wolpd.service.in
 
 CLEANFILES = $(generated_files)

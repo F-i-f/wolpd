@@ -5,7 +5,7 @@ After=syslog.target network.target
 
 [Service]
 EnvironmentFile=-/etc/sysconfig/wolpd
-ExecStart=/usr/sbin/wolpd -f $WOLPDARGS
+ExecStart=@sbindir@/wolpd -f $WOLPDARGS
 
 [Install]
 WantedBy=multi-user.target
