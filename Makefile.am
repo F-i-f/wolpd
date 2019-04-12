@@ -1,4 +1,5 @@
 EXTRA_DIST = \
+	wolpd.init.in \
 	wolpd.service.in \
 	wolpd.spec \
 	wolpd.sysconfig \

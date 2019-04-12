@@ -1,6 +1,7 @@
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
 	* Makefile.am (EXTRA_DIST): Rename wolpd.service to wolpd.service.in.
+	(EXTRA_DIST): Add missing wolpd.init.in.
 
 	* wolpd.service: Rename to woldp.service.in.
 
