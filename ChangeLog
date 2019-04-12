@@ -2,6 +2,10 @@
 
 	* wolpd.c (usage_and_exit, parse_options): List and process the
 	options in alphabetical order.
+	(g_promiscuous): Create.
+	(usage_and_exit, parse_options): Add -P/--promiscuous.
+	(set_promiscuous): Create.
+	(main): Set promiscuous mode if requested.
 
 	* configure.ac (AC_CONFIG_AUX_DIR): Define to config.aux.
 

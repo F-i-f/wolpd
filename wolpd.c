@@ -62,6 +62,7 @@ int              g_foregnd      = 0;
 char            *g_input_iface  = NULL;
 char            *g_output_iface = NULL;
 uint16_t         g_port         = DEFAULT_PORT;
+int              g_promiscuous  = 0;
 
 
 void version_and_exit()
@@ -90,6 +91,7 @@ Options:\n\
   -i, --input-interface=IFACE   source network interface.\n\
   -o, --output-interface=IFACE  destination network interface.\n\
   -p, --port=PORT               udp port used for wol packets (default: %i).\n\
+  -P, --promiscuous             put the input interface in promiscuous mode.\n\
   -v, --version                 print version number, then exit.\n\n\
 Report bugs to <%s>.\n",
         PACKAGE_NAME, PACKAGE_NAME,
@@ -109,11 +111,12 @@ void parse_options(int argc, char *argv[])
             {"input-interface",  1, 0, 'i'},
             {"output-interface", 1, 0, 'o'},
             {"port",             1, 0, 'p'},
+            {"promiscuous",      1, 0, 'P'},
             {"version",          0, 0, 'v'},
             {NULL,               0, 0, 0  }
         };
 
-        if ((c = getopt_long(argc, argv, "fhi:o:p:v",
+        if ((c = getopt_long(argc, argv, "fhi:o:p:Pv",
                      long_options, &option_index)) == -1) break;
 
         switch (c) {
@@ -131,6 +134,9 @@ void parse_options(int argc, char *argv[])
             break;
         case 'p':
             g_port = (uint16_t)atoi(optarg);
+            break;
+        case 'P':
+            g_promiscuous = 1;
             break;
         case 'v':
             version_and_exit();
@@ -152,6 +158,23 @@ int get_if_index(int sock, const char *if_name, const char *if_description)
     }
 
    return ifhw.ifr_ifindex;
+}
+
+int set_promiscuous(int sock, const char *ifname, int ifindex) /* returns true on ok, false on failure */
+{
+    struct packet_mreq mreq;
+
+    memset(&mreq, 0, sizeof(mreq));
+    mreq.mr_ifindex = ifindex;
+    mreq.mr_type    = PACKET_MR_PROMISC;
+
+    if (setsockopt(sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) != 0) {
+        fprintf(stderr, "%s: cannot add promiscuous membership on interface \"%s\" at index %d: %s\n",
+                progname, ifname, ifindex, strerror(errno));
+        return 0;
+    } else {
+        return 1;
+    }
 }
 
 int setup_filter(int sock) /* returns true on ok, false on failure */
@@ -302,6 +325,10 @@ int main(int argc, char *argv[])
     if (bind(in_socket, (struct sockaddr *) &in_lladdr, sizeof(in_lladdr)) < 0) {
         fprintf(stderr, "%s: bind AF_PACKET interface %s at index %d: %s\n",
                 progname, g_input_iface, in_ifindex, strerror(errno));
+        goto exit_fail2;
+    }
+
+    if (g_promiscuous && ! set_promiscuous(in_socket, g_input_iface, in_ifindex)) {
         goto exit_fail2;
     }
 
