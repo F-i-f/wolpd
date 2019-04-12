@@ -1,5 +1,9 @@
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
+	* Makefile.am (EXTRA_DIST): Rename wolpd.service to wolpd.service.in.
+
+	* wolpd.service: Rename to woldp.service.in.
+
 	* Makefile.am (wolpd.init): Generate wolpd.init from Makefile.
 	(generated_files): Add wolpd.init.
 
