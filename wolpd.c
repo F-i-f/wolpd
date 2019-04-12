@@ -58,10 +58,10 @@ struct eth_frame {
 const char *progname;
 
 /* global options */
+int              g_foregnd      = 0;
 char            *g_input_iface  = NULL;
 char            *g_output_iface = NULL;
 uint16_t         g_port         = DEFAULT_PORT;
-int              g_foregnd      = 0;
 
 
 void version_and_exit()
@@ -85,12 +85,12 @@ void usage_and_exit()
 %s is a Wake-On-Lan proxy daemon.\n\n\
 Usage: %s [OPTION]...\n\n\
 Options:\n\
-  -h, --help                    print this help, then exit.\n\
-  -v, --version                 print version number, then exit.\n\
   -f, --foreground              don't fork to background.\n\
+  -h, --help                    print this help, then exit.\n\
   -i, --input-interface=IFACE   source network interface.\n\
   -o, --output-interface=IFACE  destination network interface.\n\
-  -p, --port=PORT               udp port used for wol packets (default: %i).\n\n\
+  -p, --port=PORT               udp port used for wol packets (default: %i).\n\
+  -v, --version                 print version number, then exit.\n\n\
 Report bugs to <%s>.\n",
         PACKAGE_NAME, PACKAGE_NAME,
         DEFAULT_PORT, PACKAGE_BUGREPORT);
@@ -104,37 +104,37 @@ void parse_options(int argc, char *argv[])
     while (1) {
         int option_index = 0;
         static struct option long_options[] = {
-            {"help",             0, 0, 'h'},
-            {"version",          0, 0, 'v'},
             {"foreground",       0, 0, 'f'},
+            {"help",             0, 0, 'h'},
             {"input-interface",  1, 0, 'i'},
             {"output-interface", 1, 0, 'o'},
             {"port",             1, 0, 'p'},
+            {"version",          0, 0, 'v'},
             {NULL,               0, 0, 0  }
         };
 
-        if ((c = getopt_long(argc, argv, "hvi:o:p:f",
+        if ((c = getopt_long(argc, argv, "fhi:o:p:v",
                      long_options, &option_index)) == -1) break;
 
         switch (c) {
-            case 'h':
-                usage_and_exit();
-                break;
-            case 'v':
-                version_and_exit();
-                break;
-            case 'i':
-                g_input_iface = optarg;
-                break;
-            case 'o':
-                g_output_iface = optarg;
-                break;
-            case 'f':
-                g_foregnd = 1;
-                break;
-            case 'p':
-                g_port = (uint16_t)atoi(optarg);
-                break;
+        case 'f':
+            g_foregnd = 1;
+            break;
+        case 'h':
+            usage_and_exit();
+            break;
+        case 'i':
+            g_input_iface = optarg;
+            break;
+        case 'o':
+            g_output_iface = optarg;
+            break;
+        case 'p':
+            g_port = (uint16_t)atoi(optarg);
+            break;
+        case 'v':
+            version_and_exit();
+            break;
         }
     }
 }
