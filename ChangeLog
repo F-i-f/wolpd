@@ -1,5 +1,11 @@
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
+	* Makefile.am (wolpd.init): Generate wolpd.init from Makefile.
+	(generated_files): Add wolpd.init.
+
+	* configure.ac (AC_CONFIG_FILES): Do not use AC_CONFIG_FILES to
+	generate wolpd.init.
+
 	* Makefile.am (SUFFIXES): Remove useless SUFFIXES assignment.
 	(dist_man8_MANS): Rename to man8_MANS, the generated manpage shouldn't
 	be in the source package.

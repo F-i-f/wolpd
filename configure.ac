@@ -27,5 +27,5 @@ AC_TYPE_UINT8_T
 # Checks for library functions.
 AC_CHECK_FUNCS([inet_ntoa memset socket])
 
-AC_CONFIG_FILES([Makefile wolpd.init])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
