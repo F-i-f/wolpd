@@ -238,3 +238,9 @@ exit_fail1:
     return EXIT_FAILURE;
 }
 
+/*
+  Local variables:
+  c-basic-offset: 4
+  indent-tabs-mode: nil
+  End:
+*/

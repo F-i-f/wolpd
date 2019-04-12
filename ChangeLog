@@ -1,3 +1,7 @@
+2019-04-12  Philippe Troin  <phil@fifi.org>
+
+	* wolpd.c: Add an emacs local-variables block.
+
 2016-06-02 Federico Simoncelli <federico.simoncelli@gmail.com>
 
 - build: rpm cleanup and initial support for copr
