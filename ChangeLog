@@ -1,5 +1,7 @@
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
+	* configure.ac (AC_CONFIG_AUX_DIR): Define to config.aux.
+
 	* wolpd.c: Add an emacs local-variables block.
 	(parse_options): Handle the -p option.
 	(WOL_MIN_UDP_SIZE): Define the minimum UDP WOL packet size,
