@@ -121,6 +121,9 @@ void parse_options(int argc, char *argv[])
             case 'f':
                 g_foregnd = 1;
                 break;
+            case 'p':
+                g_port = (uint16_t)atoi(optarg);
+                break;
         }
     }
 }
