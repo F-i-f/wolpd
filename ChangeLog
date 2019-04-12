@@ -1,5 +1,7 @@
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
+	* Makefile.am (SUFFIXES): Remove useless SUFFIXES assignment.
+
 	* wolpd.c (usage_and_exit, parse_options): List and process the
 	options in alphabetical order.
 	(g_promiscuous): Create.

@@ -5,7 +5,6 @@ EXTRA_DIST = \
 	wolpd.sysconfig \
 	wolpd.x
 
-SUFFIXES = .x .8
 HELP2MAN = help2man
 
 ACLOCAL_AMFLAGS = -I m4
