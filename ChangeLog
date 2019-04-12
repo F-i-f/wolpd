@@ -2,6 +2,21 @@
 
 	* wolpd.c: Add an emacs local-variables block.
 	(parse_options): Handle the -p option.
+	(WOL_MIN_UDP_SIZE): Define the minimum UDP WOL packet size,
+	including UDP header.
+	(WOL_MAGIC_LEN): Use ETH_ALEN instead.
+	(DEFAULT_IFACE): Remove.
+	(g_iface): Renamed to g_output_iface, don't provide a default.
+	(g_input_iface): Created.
+	(get_if_index): Factorized the code to get interface index.
+	(setup_filter): Created, set-up a BPF filter.
+	(main): Full overhaul:
+	  o Check that both input and output interfaces have been defined.
+	  o Use a raw socket when receiving packets.
+	  o Use a BPF filter with full WOL packet validation.
+	  o Re-validate the packet after receiving it in userspace.
+	  o Simplified re-sending code path, send the full link-layer packet.
+	Replace perror() with fprintf() for more detailed messages.
 
 2016-06-02 Federico Simoncelli <federico.simoncelli@gmail.com>
 
