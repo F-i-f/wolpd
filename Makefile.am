@@ -1,4 +1,3 @@
-
 EXTRA_DIST = \
 	wolpd.service \
 	wolpd.spec \
@@ -12,7 +11,13 @@ ACLOCAL_AMFLAGS = -I m4
 sbin_PROGRAMS = wolpd
 wolpd_SOURCES = wolpd.c
 
-dist_man8_MANS = wolpd.8
+man8_MANS     = wolpd.8
+
+generated_files = wolpd.8
+
+all-local: $(generated_files)
 
 wolpd.8: wolpd
-	$(HELP2MAN) -s 8 -N -I wolpd.x -o $@ $(top_srcdir)/wolpd
+	$(HELP2MAN) -s 8 -N -I $(srcdir)/wolpd.x -o $@ ./wolpd
+
+CLEANFILES = $(generated_files)

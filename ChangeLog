@@ -1,6 +1,11 @@
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
 	* Makefile.am (SUFFIXES): Remove useless SUFFIXES assignment.
+	(dist_man8_MANS): Rename to man8_MANS, the generated manpage shouldn't
+	be in the source package.
+	(generated_files, CLEANFILES): Create.  Remove wolpd.8 on clean.
+	(all-local): Create.  Generate $(generated_files) on all-local.
+	(wolpd.8): Fix HELP2MAN invocation when building out of tree.
 
 	* wolpd.c (usage_and_exit, parse_options): List and process the
 	options in alphabetical order.
