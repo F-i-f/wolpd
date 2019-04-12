@@ -180,82 +180,98 @@ int set_promiscuous(int sock, const char *ifname, int ifindex) /* returns true o
 int setup_filter(int sock) /* returns true on ok, false on failure */
 {
     struct sock_fprog prog;
+
+    /* Since almost all the BPF jumps go to the last instruction,
+     * automate the offset calculations.
+     * Use JEND to mark a jump to the end */
+#define JEND 255
     struct sock_filter filter[] =
         {
-         BPF_STMT(BPF_LD  + BPF_H    + BPF_ABS,              12),             /* Ethertype */
-         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_K,           ETH_P_IP,   0, 106 ), /* is IP */
+         BPF_STMT(BPF_LD  + BPF_H    + BPF_ABS,              12),               /* Ethertype */
+         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_K,           ETH_P_IP,    0, JEND ), /* is IP */
 
-         BPF_STMT(BPF_LD  + BPF_B    + BPF_ABS,              14),             /* A = IPversion (4 MSB) + IHL (4 LSB) */
-         BPF_STMT(BPF_ALU + BPF_RSH  + BPF_K,                 4),             /* A = IPversion */
-         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_K,          IPVERSION,   0, 103 ), /* is IPv4 */
+         BPF_STMT(BPF_LD  + BPF_B    + BPF_ABS,              14),               /* A = IPversion (4 MSB) + IHL (4 LSB) */
+         BPF_STMT(BPF_ALU + BPF_RSH  + BPF_K,                 4),               /* A = IPversion */
+         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_K,          IPVERSION,    0, JEND ), /* is IPv4 */
 
-         BPF_STMT(BPF_LD  + BPF_H    + BPF_ABS,              20),             /* Flags + Fragment offset */
-         BPF_JUMP(BPF_JMP + BPF_JSET + BPF_K,             0x3fff, 101,   0 ), /* More Fragment == 0 && Frag. id == 0 */
+         BPF_STMT(BPF_LD  + BPF_H    + BPF_ABS,              20),               /* Flags + Fragment offset */
+         BPF_JUMP(BPF_JMP + BPF_JSET + BPF_K,             0x3fff, JEND,    0 ), /* More Fragment == 0 && Frag. id == 0 */
 
-         BPF_STMT(BPF_LD  + BPF_B    + BPF_ABS,              23),             /* IP Proto */
-         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_K,                 17,   0,  99 ), /* is UDP */
+         BPF_STMT(BPF_LD  + BPF_B    + BPF_ABS,              23),               /* IP Proto */
+         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_K,                 17,    0, JEND ), /* is UDP */
 
-         BPF_STMT(BPF_LDX + BPF_B    + BPF_MSH,              14),             /* X = number of IPv4 header bytes) */
-         BPF_STMT(BPF_LD  + BPF_H    + BPF_IND,              16),             /* X + 14 for Ethernet + 2 UDP dport  */
-         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_K,             g_port,   0,  96 ), /* UDP port is g_port */
+         BPF_STMT(BPF_LDX + BPF_B    + BPF_MSH,              14),               /* X = number of IPv4 header bytes) */
+         BPF_STMT(BPF_LD  + BPF_H    + BPF_IND,              16),               /* X + 14 for Ethernet + 2 UDP dport  */
+         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_K,             g_port,    0, JEND ), /* UDP port is g_port */
 
-         BPF_STMT(BPF_LD  + BPF_H    + BPF_IND,              18),             /* X + 14 for Ethernet + 4 UDP length  */
-         BPF_JUMP(BPF_JMP + BPF_JGE  + BPF_K,   WOL_MIN_UDP_SIZE,   0,  94 ), /* Size is at least WOL packet */
+         BPF_STMT(BPF_LD  + BPF_H    + BPF_IND,              18),               /* X + 14 for Ethernet + 4 UDP length  */
+         BPF_JUMP(BPF_JMP + BPF_JGE  + BPF_K,   WOL_MIN_UDP_SIZE,    0, JEND ), /* Size is at least WOL packet */
 
-         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,              22),             /* UDP payload bytes 0-3 */
-         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_K,           (uint)-1,   0,  92 ), /* ff:ff:ff:ff */
-         BPF_STMT(BPF_LD  + BPF_H    + BPF_IND,              26),             /* UDP payload bytes 4-5 */
-         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_K,             0xffff,   0,  90 ), /* ff:ff */
+         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,              22),               /* UDP payload bytes 0-3 */
+         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_K,           (uint)-1,    0, JEND ), /* ff:ff:ff:ff */
+         BPF_STMT(BPF_LD  + BPF_H    + BPF_IND,              26),               /* UDP payload bytes 4-5 */
+         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_K,             0xffff,    0, JEND ), /* ff:ff */
 
-         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,              28),             /* UDP payload bytes 6-9 */
-         BPF_STMT(BPF_ST,                                     0),             /* Store in Mem[0] */
-         BPF_STMT(BPF_LD  + BPF_H    + BPF_IND,              32),             /* UDP payload bytes 10-11 */
-         BPF_STMT(BPF_ST,                                     1),             /* Store in Mem[1] */
+         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,              28),               /* UDP payload bytes 6-9 */
+         BPF_STMT(BPF_ST,                                     0),               /* Store in Mem[0] */
+         BPF_STMT(BPF_LD  + BPF_H    + BPF_IND,              32),               /* UDP payload bytes 10-11 */
+         BPF_STMT(BPF_ST,                                     1),               /* Store in Mem[1] */
 
-         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,              34),             /* Compare first copy #1 */
-         BPF_STMT(BPF_STX,                                    3),             /* Store X in Mem[3] */
+         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,              34),               /* Compare first copy #1 */
+         BPF_STMT(BPF_STX,                                    3),               /* Store X in Mem[3] */
          BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,               0),
-         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_X,                 0,    0,  82 ),
+         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_X,                 0,     0, JEND ),
          BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,               3),
          BPF_STMT(BPF_LD  + BPF_H    + BPF_IND,              38),
          BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,               1),
-         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_X,                 0,    0,  78 ),
+         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_X,                 0,     0, JEND ),
 
          BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,               3),
-         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,              32),             /* UDP payload bytes 10-13 */
-         BPF_STMT(BPF_ST,                                     1),             /* Store in Mem[1] */
-         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,              36),             /* UDP payload bytes 14-17 */
-         BPF_STMT(BPF_ST,                                     2),             /* Store in Mem[1] */
+         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,              32),               /* UDP payload bytes 10-13 */
+         BPF_STMT(BPF_ST,                                     1),               /* Store in Mem[1] */
+         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,              36),               /* UDP payload bytes 14-17 */
+         BPF_STMT(BPF_ST,                                     2),               /* Store in Mem[1] */
 
-#define BPF_WOL_MACS_PAYLOAD_CHECK(udpoff, jumpadd)                             \
-         BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,        3),                      \
-         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND, udpoff+0),                      \
-         BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,        0),                      \
-         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_X,          0,    0, jumpadd+9 ),    \
-         BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,        3),                      \
-         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND, udpoff+4),                      \
-         BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,        1),                      \
-         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_X,          0,    0, jumpadd+5 ),    \
-         BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,        3),                      \
-         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND, udpoff+8),                      \
-         BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,        2),                      \
-         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_X,          0,    0, jumpadd+1 )
+#define BPF_WOL_MACS_PAYLOAD_CHECK(udpoff)                                        \
+         BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,               3),                 \
+         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,        udpoff+0),                 \
+         BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,               0),                 \
+         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_X,                 0,     0, JEND ),   \
+         BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,               3),                 \
+         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,        udpoff+4),                 \
+         BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,               1),                 \
+         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_X,                 0,     0, JEND ),   \
+         BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,               3),                 \
+         BPF_STMT(BPF_LD  + BPF_W    + BPF_IND,        udpoff+8),                 \
+         BPF_STMT(BPF_LDX + BPF_W    + BPF_MEM,               2),                 \
+         BPF_JUMP(BPF_JMP + BPF_JEQ  + BPF_X,                 0,     0, JEND )
 
-         BPF_WOL_MACS_PAYLOAD_CHECK( 40, 60),
-         BPF_WOL_MACS_PAYLOAD_CHECK( 52, 48),
-         BPF_WOL_MACS_PAYLOAD_CHECK( 64, 36),
-         BPF_WOL_MACS_PAYLOAD_CHECK( 76, 24),
-         BPF_WOL_MACS_PAYLOAD_CHECK( 88, 12),
-         BPF_WOL_MACS_PAYLOAD_CHECK(100,  0),
+         BPF_WOL_MACS_PAYLOAD_CHECK( 40),
+         BPF_WOL_MACS_PAYLOAD_CHECK( 52),
+         BPF_WOL_MACS_PAYLOAD_CHECK( 64),
+         BPF_WOL_MACS_PAYLOAD_CHECK( 76),
+         BPF_WOL_MACS_PAYLOAD_CHECK( 88),
+         BPF_WOL_MACS_PAYLOAD_CHECK(100),
 
 #undef BPF_WOL_MACS_PAYLOAD_CHECK
 
-         BPF_STMT(BPF_RET + BPF_K,                0xffff),           /* Return whole packet */
-         BPF_STMT(BPF_RET + BPF_K,                     0),           /* Drop */
+         BPF_STMT(BPF_RET + BPF_K,                       0xffff),               /* Return whole packet */
+         BPF_STMT(BPF_RET + BPF_K,                            0),               /* Drop */
         };
+    int i;
 
     prog.len = sizeof(filter)/sizeof(filter[0]);
     prog.filter = filter;
+
+    for (i=0; i < prog.len; ++i) {
+        if (filter[i].jt == JEND) {
+            filter[i].jt = prog.len-i-2;
+        }
+        if (filter[i].jf == JEND) {
+            filter[i].jf = prog.len-i-2;
+        }
+    }
+#undef JEND
 
     if (setsockopt(sock, SOL_SOCKET, SO_ATTACH_FILTER, &prog, sizeof(prog)) != 0) {
         fprintf(stderr, "%s: couldn't attach filter: %s\n",

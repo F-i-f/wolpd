@@ -1,5 +1,11 @@
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.c (setup_filter): Instead of doing the "jump to end"
+	offset calculations by hand, use the biggest jump possible 255 as
+	a marker for Jump to END (JEND).
+	Before the filter is loaded, make a pass over the BPF program and
+	resolve the jump-to-end offsets.
+
 	* .gitignore: Update.
 
 	* Makefile.am (install-data-local uninstall-local): Create.
