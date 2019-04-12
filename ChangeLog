@@ -1,5 +1,7 @@
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
+	* .gitignore: Update.
+
 	* Makefile.am (install-data-local uninstall-local): Create.
 	(install-data-local-init uninstall-local-init): (Un)install
 	systemd service file, or if not found, the init file.
