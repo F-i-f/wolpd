@@ -1,5 +1,10 @@
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.c (setup_filter): Split the udp-specific parsing into
+	setup_udp_filter.  Change setup_filter to assemble a preamble
+	passed from setup_udp_filter and the payload check before loading
+	the BPF program.
+
 	* wolpd.c (setup_filter): Make the payload calculations relative
 	to the beginning of the UDP payload by adjusting the X index
 	register.

@@ -177,40 +177,24 @@ int set_promiscuous(int sock, const char *ifname, int ifindex) /* returns true o
     }
 }
 
-int setup_filter(int sock) /* returns true on ok, false on failure */
-{
-    struct sock_fprog prog;
+/*
+ * BPF code
+ */
 
-    /* Since almost all the BPF jumps go to the last instruction,
-     * automate the offset calculations.
-     * Use JEND to mark a jump to the end */
+/* Since almost all the BPF jumps go to the last instruction, automate
+ * the offset calculations.
+ * Use JEND to mark a jump to the end */
 #define JEND 255
-    struct sock_filter filter[] =
+
+int setup_filter(int sock,
+                 const struct sock_filter *filter_preamble,
+                 size_t filter_preamble_stmts)
+/* returns true on ok, false on failure */
+{
+    /* The payload filter expects the X index register to contain the
+     * offset to the payload. */
+    static const struct sock_filter filter_payload[] =
         {
-         BPF_STMT(BPF_LD   + BPF_H    + BPF_ABS,              12),               /* Ethertype */
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,           ETH_P_IP,    0, JEND ), /* is IP */
-
-         BPF_STMT(BPF_LD   + BPF_B    + BPF_ABS,              14),               /* A = IPversion (4 MSB) + IHL (4 LSB) */
-         BPF_STMT(BPF_ALU  + BPF_RSH  + BPF_K,                 4),               /* A = IPversion */
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,          IPVERSION,    0, JEND ), /* is IPv4 */
-
-         BPF_STMT(BPF_LD   + BPF_H    + BPF_ABS,              20),               /* Flags + Fragment offset */
-         BPF_JUMP(BPF_JMP  + BPF_JSET + BPF_K,             0x3fff, JEND,    0 ), /* More Fragment == 0 && Frag. id == 0 */
-
-         BPF_STMT(BPF_LD   + BPF_B    + BPF_ABS,              23),               /* IP Proto */
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,                 17,    0, JEND ), /* is UDP */
-
-         BPF_STMT(BPF_LDX  + BPF_B    + BPF_MSH,              14),               /* X = number of IPv4 header bytes) */
-         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,              16),               /* X + 14 for Ethernet + 2 UDP dport  */
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,             g_port,    0, JEND ), /* UDP port is g_port */
-
-         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,              18),               /* X + 14 for Ethernet + 4 UDP length  */
-         BPF_JUMP(BPF_JMP  + BPF_JGE  + BPF_K,   WOL_MIN_UDP_SIZE,    0, JEND ), /* Size is at least WOL packet */
-
-         BPF_STMT(BPF_MISC + BPF_TXA,                          0),               /* A <- X */
-         BPF_STMT(BPF_ALU  + BPF_ADD  + BPF_K,                22),               /* A = offset to beginning of UDP payload */
-         BPF_STMT(BPF_MISC + BPF_TAX,                          0),               /* X <- A */
-
          BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,               0),               /* UDP payload bytes 0-3 */
          BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,           (uint)-1,    0, JEND ), /* ff:ff:ff:ff */
          BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,               4),               /* UDP payload bytes 4-5 */
@@ -263,29 +247,85 @@ int setup_filter(int sock) /* returns true on ok, false on failure */
          BPF_STMT(BPF_RET  + BPF_K,                       0xffff),               /* Return whole packet */
          BPF_STMT(BPF_RET  + BPF_K,                            0),               /* Drop */
         };
-    int i;
 
-    prog.len = sizeof(filter)/sizeof(filter[0]);
-    prog.filter = filter;
+    struct sock_fprog prog;
+    int ret;
+    int i;
+    int saved_errno;
+
+    /* Assemble the full BPF program */
+    prog.len = sizeof(filter_payload)/sizeof(filter_payload[0]) + filter_preamble_stmts;
+    prog.filter = (struct sock_filter *)malloc(sizeof(filter_payload[0]) * prog.len);
+    if (prog.filter == NULL) {
+        fprintf(stderr, "%s: couldn't allocate %u bytes of memory: %s\n",
+                progname, (unsigned)sizeof(filter_payload[0]) * prog.len, strerror(errno));
+        return 0; /* fail */
+    }
+
+    memcpy(prog.filter, filter_preamble, sizeof(filter_preamble[0]) * filter_preamble_stmts);
+    memcpy(prog.filter + filter_preamble_stmts, filter_payload, sizeof(filter_payload));
 
     for (i=0; i < prog.len; ++i) {
-        if (filter[i].jt == JEND) {
-            filter[i].jt = prog.len-i-2;
+        if (prog.filter[i].jt == JEND) {
+            prog.filter[i].jt = prog.len-i-2;
         }
-        if (filter[i].jf == JEND) {
-            filter[i].jf = prog.len-i-2;
+        if (prog.filter[i].jf == JEND) {
+            prog.filter[i].jf = prog.len-i-2;
         }
     }
-#undef JEND
 
-    if (setsockopt(sock, SOL_SOCKET, SO_ATTACH_FILTER, &prog, sizeof(prog)) != 0) {
+    ret = setsockopt(sock, SOL_SOCKET, SO_ATTACH_FILTER, &prog, sizeof(prog));
+    saved_errno = errno;
+
+    free(prog.filter);
+
+    if (ret != 0) {
         fprintf(stderr, "%s: couldn't attach filter: %s\n",
-                progname, strerror(errno));
+                progname, strerror(saved_errno));
         return 0; /* fail */
     } else {
         return 1; /* ok */
     }
 }
+
+int setup_udp_filter(int sock)
+{
+    const struct sock_filter filter_udp[] =
+        {
+         BPF_STMT(BPF_LD   + BPF_H    + BPF_ABS,              12),               /* Ethertype */
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,           ETH_P_IP,    0, JEND ), /* is IP */
+
+         BPF_STMT(BPF_LD   + BPF_B    + BPF_ABS,              14),               /* A = IPversion (4 MSB) + IHL (4 LSB) */
+         BPF_STMT(BPF_ALU  + BPF_RSH  + BPF_K,                 4),               /* A = IPversion */
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,          IPVERSION,    0, JEND ), /* is IPv4 */
+
+         BPF_STMT(BPF_LD   + BPF_H    + BPF_ABS,              20),               /* Flags + Fragment offset */
+         BPF_JUMP(BPF_JMP  + BPF_JSET + BPF_K,             0x3fff, JEND,    0 ), /* More Fragment == 0 && Frag. id == 0 */
+
+         BPF_STMT(BPF_LD   + BPF_B    + BPF_ABS,              23),               /* IP Proto */
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,        IPPROTO_UDP,    0, JEND ), /* is UDP */
+
+         BPF_STMT(BPF_LDX  + BPF_B    + BPF_MSH,              14),               /* X = number of IPv4 header bytes) */
+         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,              16),               /* X + 14 for Ethernet + 2 UDP dport  */
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,             g_port,    0, JEND ), /* UDP port is g_port */
+
+         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,              18),               /* X + 14 for Ethernet + 4 UDP length  */
+         BPF_JUMP(BPF_JMP  + BPF_JGE  + BPF_K,   WOL_MIN_UDP_SIZE,    0, JEND ), /* Size is at least WOL packet */
+
+         BPF_STMT(BPF_MISC + BPF_TXA,                          0),               /* A <- X */
+         BPF_STMT(BPF_ALU  + BPF_ADD  + BPF_K,                22),               /* A = offset to beginning of UDP payload */
+         BPF_STMT(BPF_MISC + BPF_TAX,                          0),               /* X <- A */
+        };
+
+    return setup_filter(sock, filter_udp, sizeof(filter_udp)/sizeof(filter_udp[0]));
+}
+
+#undef JEND
+
+
+/*
+ * Main
+ */
 
 int main(int argc, char *argv[])
 {
@@ -326,7 +366,7 @@ int main(int argc, char *argv[])
         goto exit_fail1;
     }
 
-    if (!setup_filter(in_socket)) {
+    if (!setup_udp_filter(in_socket)) {
         goto exit_fail2;
     }
 
