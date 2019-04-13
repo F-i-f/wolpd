@@ -1,5 +1,9 @@
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.c (setup_filter): Make the payload calculations relative
+	to the beginning of the UDP payload by adjusting the X index
+	register.
+
 	* wolpd.c (setup_filter): Instead of doing the "jump to end"
 	offset calculations by hand, use the biggest jump possible 255 as
 	a marker for Jump to END (JEND).
