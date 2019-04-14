@@ -805,7 +805,7 @@ int forward_packets(int in_sock, const
             default:
                 syslog(LOG_ERR, "cannot forward %s WOL packet from %s: %m",
                        in_sock_descr, validation_results.saddr_descr);
-                return 0;
+                continue; /* the while(1) loop */
             }
         }
 

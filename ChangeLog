@@ -12,6 +12,7 @@
 	read_packet().
 	(setup_input_socket): Flush the input sockets after creating them,
 	but before the main loop runs, to discard unfiltered packets.
+	(forward_packets): An error in sendto() is not fatal.
 
 2019-04-13  Philippe Troin  <phil@fifi.org>
 
