@@ -15,10 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <grp.h>
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_arp.h>
@@ -26,6 +31,7 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <netpacket/packet.h>
+#include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,10 +44,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <linux/filter.h>
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 #if __GNUC__
 # define ATTRIBUTE_UNUSED __attribute__((unused))
@@ -93,6 +95,9 @@ char *g_input_iface = NULL;
 /* Output interface, required */
 char *g_output_iface = NULL;
 
+/* User to run as */
+struct passwd* g_running_user = NULL;
+
 /* UDP port to listen on or UDP_PORT_NO_LISTEN if not listening to UDP
  * or UDP_PORT_LISTEN_ALL if listening to all UDP ports. */
 #define UDP_PORT_NO_LISTEN  -1
@@ -137,6 +142,9 @@ Options:\n\
   -p, --port=PORT               UDP port used for WOL packets.\n\
                                 Implies --udp.\n\
   -P, --promiscuous             Put the input interface in promiscuous mode.\n\
+  -s, --setuid=USER             Change the process user if to USER after\n\
+                                initialization.\n\
+                                (Default: keep running as root)\n\
   -u, --udp                     Listens to UDP WOL packets.\n\
                                 Unless a PORT is specified with --port, listens\n\
                                 to *all* UDP ports.\n\
@@ -188,13 +196,14 @@ void parse_options(int argc, char *argv[])
              {"output-interface", 1, 0, 'o'},
              {"port",             1, 0, 'p'},
              {"promiscuous",      1, 0, 'P'},
+             {"setuid",           1, 0, 's'},
              {"udp",              0, 0, 'u'},
              {"no-udp",           0, 0, 'U'},
              {"version",          0, 0, 'v'},
              {NULL,               0, 0, 0  }
             };
 
-        if ((c = getopt_long(argc, argv, "e:Efhi:o:p:PuUv",
+        if ((c = getopt_long(argc, argv, "e:Efhi:o:p:Ps:uUv",
                      long_options, &option_index)) == -1) break;
 
         switch (c) {
@@ -227,6 +236,33 @@ void parse_options(int argc, char *argv[])
             break;
         case 'P':
             g_promiscuous = 1;
+            break;
+        case 's':
+            {
+                int fail_errno = 0;
+
+                errno = 0;
+                g_running_user = getpwnam(optarg);
+                fail_errno = errno;
+
+                if (g_running_user == NULL) {
+                    char *ptr;
+                    uid_t uid;
+                    uid = (uid_t)strtol(optarg, &ptr, 0);
+                    if (!*ptr) {
+                        errno = 0;
+                        g_running_user = getpwuid(uid);
+                        fail_errno = errno;
+                    }
+                }
+
+                if (g_running_user == NULL) {
+                    fprintf(stderr, "%s: cannot find user \"%s\": %s\n",
+                            progname, optarg,
+                            fail_errno ? strerror(fail_errno) : "not found");
+                    exit(EXIT_FAILURE);
+                }
+            }
             break;
         case 'u':
             if (g_udp_port == UDP_PORT_NO_LISTEN) {
@@ -261,11 +297,12 @@ void parse_options(int argc, char *argv[])
     }
 }
 
-const char* get_listen_descr()
+const char* get_features()
 {
     char buf_ether[32];
     char buf_udp[32];
-    static char buf_all[64];
+    char buf_userinfo[64];
+    static char buf_features[128];
 
     if (g_ethertype == ETHERTYPE_NO_LISTEN) {
         buf_ether[0] = '\0';
@@ -290,13 +327,23 @@ const char* get_listen_descr()
         break;
     }
 
-    snprintf(buf_all, sizeof(buf_all),
-             "%s%s%s",
+    if (g_running_user == NULL) {
+        buf_userinfo[0] = '\0';
+    } else {
+        snprintf(buf_userinfo, sizeof(buf_userinfo),
+                 ", running as %s (uid=%lu)",
+                 g_running_user->pw_name,
+                 (unsigned long)g_running_user->pw_uid);
+    }
+
+    snprintf(buf_features, sizeof(buf_features),
+             "%s%s%s%s",
              buf_ether,
              (buf_ether[0] && buf_udp[0]) ? ", " : "",
-             buf_udp);
+             buf_udp,
+             buf_userinfo);
 
-    return buf_all;
+    return buf_features;
 }
 
 
@@ -883,6 +930,39 @@ int main(int argc, char *argv[])
         goto exit_fail4;
     }
 
+    /* Root is not needed anymore, drop it if requested */
+    if (g_running_user != NULL) {
+        if (initgroups(g_running_user->pw_name, g_running_user->pw_gid) != 0) {
+            fprintf(stderr, "%s: initgroups(\"%s\", %lu) failed: %s\n",
+                    progname, g_running_user->pw_name,
+                    (unsigned long)g_running_user->pw_gid,
+                    strerror(errno));
+            goto exit_fail3;
+        }
+        if (setresgid(g_running_user->pw_gid,
+                      g_running_user->pw_gid,
+                      g_running_user->pw_gid) != 0) {
+            fprintf(stderr, "%s: setresgid(%lu, %lu, %lu) failed: %s\n",
+                    progname,
+                    (unsigned long)g_running_user->pw_gid,
+                    (unsigned long)g_running_user->pw_gid,
+                    (unsigned long)g_running_user->pw_gid,
+                    strerror(errno));
+            goto exit_fail3;
+        }
+        if (setresuid(g_running_user->pw_uid,
+                      g_running_user->pw_uid,
+                      g_running_user->pw_uid) != 0) {
+            fprintf(stderr, "%s: setresuid(%lu, %lu, %lu) failed: %s\n",
+                    progname,
+                    (unsigned long)g_running_user->pw_uid,
+                    (unsigned long)g_running_user->pw_uid,
+                    (unsigned long)g_running_user->pw_uid,
+                    strerror(errno));
+            goto exit_fail3;
+        }
+    }
+
     if (in_socket_ether >= 0) {
         fill_lladdr(&out_lladdr_ether, g_ethertype, out_ifindex);
     }
@@ -912,7 +992,7 @@ int main(int argc, char *argv[])
     }
 
     syslog(LOG_NOTICE, "started, listening on %s",
-           get_listen_descr());
+           get_features());
 
     g_interrupt_signum = 0;
     while (! g_interrupt_signum)

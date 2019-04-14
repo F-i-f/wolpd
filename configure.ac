@@ -8,6 +8,8 @@ AM_INIT_AUTOMAKE()
 AC_CONFIG_SRCDIR([wolpd.c])
 AC_CONFIG_HEADERS([config.h])
 
+AC_USE_SYSTEM_EXTENSIONS
+
 # Checks for programs.
 AC_PROG_CC
 

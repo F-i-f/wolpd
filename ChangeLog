@@ -1,5 +1,15 @@
 2019-04-13  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.c (<config.h>): Must be included first because it may set
+	feature macros (_GNU_SOURCE).
+	(g_running_user): Create.
+	(usage_and_exit, parse_options): Add -s/--setuid option.
+	(get_listen_descr): Rename to get_features, add running user info.
+	(main): Change uid/gid to --setuid user if requested.
+
+	* configure.ac: Add AC_USE_SYSTEM_EXTENSIONS to set _GNU_SOURCE
+	for us for getresuid().
+
 	* wolpd.c (ATTRIBUTE_UNUSED): Define to __attribute__((unused))
 	when gcc is in use.
 	(DEFAULT_PORT): Remove, no UDP port default anymore.
