@@ -1,5 +1,12 @@
 2019-04-13  Philippe Troin  <phil@fifi.org>
 
+	* configure.ac: Add call to AM_MISSING_PROG() for help2man.
+
+	* Makefile.am (HELP2MAN): Remove define.
+	(wolpd.8): Adjust help2man invocation.
+
+	* wolpd.x: Rename to wolpd.h2m.
+
 	* wolpd.c (<config.h>): Must be included first because it may set
 	feature macros (_GNU_SOURCE).
 	(g_running_user): Create.

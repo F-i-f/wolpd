@@ -9,6 +9,7 @@ AC_CONFIG_SRCDIR([wolpd.c])
 AC_CONFIG_HEADERS([config.h])
 
 AC_USE_SYSTEM_EXTENSIONS
+AM_MISSING_PROG(HELP2MAN, help2man)
 
 # Checks for programs.
 AC_PROG_CC

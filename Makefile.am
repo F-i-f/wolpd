@@ -3,9 +3,7 @@ EXTRA_DIST = \
 	wolpd.service.in \
 	wolpd.spec \
 	wolpd.sysconfig \
-	wolpd.x
-
-HELP2MAN = help2man
+	wolpd.h2m
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -18,8 +16,8 @@ generated_files = wolpd.8 wolpd.init wolpd.service
 
 all-local: $(generated_files)
 
-wolpd.8: wolpd
-	$(HELP2MAN) -s 8 -N -I $(srcdir)/wolpd.x -o $@ ./wolpd
+wolpd.8: $(srcdir)/wolpd.c $(srcdir)/wolpd.h2m
+	-$(HELP2MAN) -s 8 -N -i $(srcdir)/wolpd.h2m -o $@ ./wolpd
 
 wolpd.init wolpd.service: Makefile
 	sed -e 's![@]sbindir@!$(sbindir)!g' \
