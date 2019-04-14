@@ -310,7 +310,7 @@ const char* get_features()
     char buf_ether[32];
     char buf_udp[32];
     char buf_userinfo[64];
-    static char buf_features[128];
+    static char buf_features[32 + sizeof(buf_ether) + sizeof(buf_udp) + sizeof(buf_userinfo)];
 
     if (g_ethertype == ETHERTYPE_NO_LISTEN) {
         buf_ether[0] = '\0';
@@ -345,7 +345,8 @@ const char* get_features()
     }
 
     snprintf(buf_features, sizeof(buf_features),
-             "%s%s%s%s",
+             "listening%s for %s%s%s%s",
+             g_promiscuous ? " promiscuously" : "",
              buf_ether,
              (buf_ether[0] && buf_udp[0]) ? ", " : "",
              buf_udp,
@@ -1019,7 +1020,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    syslog(LOG_NOTICE, "started, listening on %s",
+    syslog(LOG_NOTICE, "started, %s",
            get_features());
 
     g_interrupt_signum = 0;
