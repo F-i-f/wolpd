@@ -846,7 +846,7 @@ int main(int argc, char *argv[])
 
     parse_options(argc, argv);
 
-    /* Set up external/input socket */
+    /* Set up input socket(s) */
     FD_ZERO(&scan_set);
 
     if (g_ethertype != ETHERTYPE_NO_LISTEN) {
@@ -871,14 +871,14 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Set up internal/output socket */
+    /* Set up output socket */
     if ((out_socket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IP))) < 0 ) {
-        fprintf(stderr, "%s: couldn't open internal socket: %s\n",
+        fprintf(stderr, "%s: couldn't open output socket: %s\n",
                 progname, strerror(errno));
         goto exit_fail3;
     }
 
-    out_ifindex = get_if_index(out_socket, g_output_iface, "external");
+    out_ifindex = get_if_index(out_socket, g_output_iface, "output");
     if (out_ifindex < 0) {
         goto exit_fail4;
     }

@@ -28,6 +28,7 @@
 	(main): Handle EINTR from select().  Establish signal handlers
 	for handled_signals that terminate the process cleanly.  Print
 	messages on starting and termination.
+	(main): Get rid of external/internal nomenclature.
 
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
