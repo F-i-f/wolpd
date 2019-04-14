@@ -7,6 +7,11 @@
 	(forward_packets): Adjust strings for the new SOCK_DESCR_*
 	constants.
 	(main): Use new SOCK_DESCR_* constants.
+	(read_packet): Created.
+	(forward_packets): Factorize the packet-receiving code to
+	read_packet().
+	(setup_input_socket): Flush the input sockets after creating them,
+	but before the main loop runs, to discard unfiltered packets.
 
 2019-04-13  Philippe Troin  <phil@fifi.org>
 

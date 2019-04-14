@@ -569,6 +569,39 @@ int setup_ether_filter(int sock)
 #undef JEND
 
 /*
+ * Utilities
+ */
+
+ssize_t read_packet(int sock, const char* sock_descr, void *buf, size_t buf_size)
+/* Returns -1 if an error occured, -2 if no packets are available or
+   the size of the received packet. A zero-byte packet is converted to an error (-1) */
+{
+    ssize_t recv_len;
+
+    while (1) {
+        if ((recv_len = recv( sock, buf, buf_size, 0)) < 0) {
+            switch(errno) {
+            case EAGAIN:
+                return -2;
+            case EINTR:
+                continue; /* the while() loop */
+            default:
+                syslog(LOG_ERR, "couldn't receive data from %s socket: %m", sock_descr);
+                return -1;
+            }
+        }
+
+        if (recv_len == 0) {
+            syslog(LOG_ERR, "end of file on %s socket", sock_descr);
+            return -1;
+        }
+
+        return recv_len;
+    }
+}
+
+
+/*
  * Raw socket setup
  */
 
@@ -613,6 +646,7 @@ int setup_input_socket(uint16_t ethertype,
     int                sock;
     int                ifindex;
     int                flags;
+    int                flushing;
     ssize_t            recv_len;
     char               recv_buf[1];
 
@@ -661,6 +695,21 @@ int setup_input_socket(uint16_t ethertype,
         goto exit_fail;
     }
 
+    /* Flush any packets on the socket that may have sneaked in before
+     * the BPF filter and bind() went into effect. */
+    for (flushing=1; flushing; ) {
+        switch(recv_len = read_packet(sock, sock_description, &recv_buf, sizeof(recv_buf))) {
+        case -1:
+            goto exit_fail;
+        case -2:
+            flushing = 0;
+            break;
+        default:
+            /* Packet has been eaten */
+            break;
+        }
+    }
+
     return sock;
 
  exit_fail:
@@ -698,21 +747,13 @@ int forward_packets(int in_sock, const
 
     while (1) {
 
-        if ((wol_len = recv( in_sock, &wol_msg, sizeof(wol_msg), 0)) < 0) {
-            switch(errno) {
-            case EAGAIN:
-                return 1;
-            case EINTR:
-                continue; /* the while() loop */
-            default:
-                syslog(LOG_ERR, "couldn't receive data from %s socket: %m", in_sock_descr);
-                return 0;
-            }
-        }
-
-        if (wol_len == 0) {
-            syslog(LOG_ERR, "end of file on %s socket", in_sock_descr);
+        switch (wol_len = read_packet(in_sock, in_sock_descr, &wol_msg, sizeof(wol_msg))) {
+        case -1:
             return 0;
+        case -2:
+            return 1;
+        default:
+            break;
         }
 
         if ((size_t)wol_len < min_packet_size) {
