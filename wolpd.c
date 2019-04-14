@@ -51,6 +51,10 @@
 # define ATTRIBUTE_UNUSED /**/
 #endif /* ! __GNUC__ */
 
+#define SOCK_DESCR_IN_ETHER "raw Ethernet input"
+#define SOCK_DESCR_IN_UDP   "UDP input"
+#define SOCK_DESCR_OUT      "output"
+
 #define WOL_MIN_PAYLOAD_SIZE (ETH_ALEN*17)
 #define WOL_MIN_ETHER_RAW_SIZE (sizeof(struct ethhdr)+WOL_MIN_PAYLOAD_SIZE)
 #define WOL_MIN_UDP_SIZE (sizeof(struct udphdr)+WOL_MIN_PAYLOAD_SIZE)
@@ -600,17 +604,21 @@ int set_promiscuous(int sock, const char *ifname, int ifindex) /* returns true o
     }
 }
 
-int setup_input_socket(uint16_t ethertype, int (*setup_filter_function)(int))
+int setup_input_socket(uint16_t ethertype,
+                       const char* sock_description,
+                       int (*setup_filter_function)(int))
 /* Return the socket fd or -1 if failed */
 {
     struct sockaddr_ll lladdr;
-    int sock;
-    int ifindex;
-    int flags;
+    int                sock;
+    int                ifindex;
+    int                flags;
+    ssize_t            recv_len;
+    char               recv_buf[1];
 
     if ((sock = socket(PF_PACKET, SOCK_RAW, htons(ethertype))) < 0 ) {
-        fprintf(stderr, "%s: couldn't open input socket: %s\n",
-                progname, strerror(errno));
+        fprintf(stderr, "%s: couldn't open %s socket: %s\n",
+                progname, sock_description, strerror(errno));
         return -1;
     }
 
@@ -618,7 +626,7 @@ int setup_input_socket(uint16_t ethertype, int (*setup_filter_function)(int))
         goto exit_fail;
     }
 
-    ifindex = get_if_index(sock, g_input_iface, "input");
+    ifindex = get_if_index(sock, g_input_iface, sock_description);
     if (ifindex < 0) {
         goto exit_fail;
     }
@@ -632,8 +640,8 @@ int setup_input_socket(uint16_t ethertype, int (*setup_filter_function)(int))
     lladdr.sll_halen    = ETH_ALEN;
 
     if (bind(sock, (struct sockaddr *) &lladdr, sizeof(lladdr)) < 0) {
-        fprintf(stderr, "%s: bind AF_PACKET interface %s at index %d: %s\n",
-                progname, g_input_iface, ifindex, strerror(errno));
+        fprintf(stderr, "%s: bind AF_PACKET %s interface %s at index %d: %s\n",
+                progname, sock_description, g_input_iface, ifindex, strerror(errno));
         goto exit_fail;
     }
 
@@ -643,13 +651,13 @@ int setup_input_socket(uint16_t ethertype, int (*setup_filter_function)(int))
 
     flags = fcntl(sock, F_GETFL, 0);
     if (flags == -1) {
-        fprintf(stderr, "%s: fcntl(F_GETFL) on input socket: %s\n",
-                progname, strerror(errno));
+        fprintf(stderr, "%s: fcntl(F_GETFL) on %s socket: %s\n",
+                progname, sock_description, strerror(errno));
         goto exit_fail;
     }
     if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) == -1) {
-        fprintf(stderr, "%s: fcntl(F_SETFL) on input socket: %s\n",
-                progname, strerror(errno));
+        fprintf(stderr, "%s: fcntl(F_SETFL) on %s socket: %s\n",
+                progname, sock_description, strerror(errno));
         goto exit_fail;
     }
 
@@ -697,18 +705,18 @@ int forward_packets(int in_sock, const
             case EINTR:
                 continue; /* the while() loop */
             default:
-                syslog(LOG_ERR, "couldn't receive data from %s input socket: %m", in_sock_descr);
+                syslog(LOG_ERR, "couldn't receive data from %s socket: %m", in_sock_descr);
                 return 0;
             }
         }
 
         if (wol_len == 0) {
-            syslog(LOG_ERR, "end of file on %s input socket", in_sock_descr);
+            syslog(LOG_ERR, "end of file on %s socket", in_sock_descr);
             return 0;
         }
 
         if ((size_t)wol_len < min_packet_size) {
-            syslog(LOG_ERR, "short packet (%lu < %lu) on %s input socket",
+            syslog(LOG_ERR, "short packet (%lu < %lu) on %s socket",
                    (unsigned long)wol_len, (unsigned long)min_packet_size, in_sock_descr);
             continue;
         }
@@ -906,7 +914,7 @@ int main(int argc, char *argv[])
     FD_ZERO(&scan_set);
 
     if (g_ethertype != ETHERTYPE_NO_LISTEN) {
-        in_socket_ether = setup_input_socket(g_ethertype, &setup_ether_filter);
+        in_socket_ether = setup_input_socket(g_ethertype, SOCK_DESCR_IN_ETHER,  &setup_ether_filter);
         if (in_socket_ether < 0) {
             goto exit_fail2;
         }
@@ -917,7 +925,7 @@ int main(int argc, char *argv[])
     }
 
     if (g_udp_port != UDP_PORT_NO_LISTEN) {
-        in_socket_udp = setup_input_socket(ETH_P_IP, &setup_udp_filter);
+        in_socket_udp = setup_input_socket(ETH_P_IP, SOCK_DESCR_IN_UDP, &setup_udp_filter);
         if (in_socket_udp < 0) {
             goto exit_fail1;
         }
@@ -929,12 +937,12 @@ int main(int argc, char *argv[])
 
     /* Set up output socket */
     if ((out_socket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IP))) < 0 ) {
-        fprintf(stderr, "%s: couldn't open output socket: %s\n",
-                progname, strerror(errno));
+        fprintf(stderr, "%s: couldn't %s output socket: %s\n",
+                progname, SOCK_DESCR_OUT, strerror(errno));
         goto exit_fail3;
     }
 
-    out_ifindex = get_if_index(out_socket, g_output_iface, "output");
+    out_ifindex = get_if_index(out_socket, g_output_iface, SOCK_DESCR_OUT);
     if (out_ifindex < 0) {
         goto exit_fail4;
     }

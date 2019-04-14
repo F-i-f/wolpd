@@ -2,6 +2,11 @@
 
 	* wolpd.c (get_features): Also report if the packet capture is
 	running promiscuously.
+	(SOCK_DESCR_IN_ETHER, SOCK_DESCR_IN_UDP, SOCK_DESCR_OUT): Add.
+	(setup_input_socket): Add sock_description parameter.
+	(forward_packets): Adjust strings for the new SOCK_DESCR_*
+	constants.
+	(main): Use new SOCK_DESCR_* constants.
 
 2019-04-13  Philippe Troin  <phil@fifi.org>
 
