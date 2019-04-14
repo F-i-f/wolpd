@@ -81,6 +81,9 @@ volatile int g_interrupt_signum;
 
 /* Options */
 
+/* Chroot() directory */
+const char* g_chroot = NULL;
+
 /* Ether Type to listen for WOL packets or ETHERTYPE_NO_LISTEN if not
  * listening to raw ether frames */
 #define ETHERTYPE_NO_LISTEN -1
@@ -132,7 +135,8 @@ void usage_and_exit()
 %s is a Wake-On-Lan proxy daemon.\n\n\
 Usage: %s [OPTION]...\n\n\
 Options:\n\
-  -e, --ethertype=ETHERTYPE     Listen for WOL packets with given ethernet type\n\
+  -C, --chroot=DIRECTORY        chroot(2) to DIRECTORY.\n\
+  -e, --ethertype=ETHERTYPE     Listen for WOL packets with given ethernet type.\n\
                                 (Default: 0x%04X)\n\
   -E, --no-ether                Do not listen for raw ethernet WOL packets.\n\
   -f, --foreground              Don't fork to background.\n\
@@ -188,6 +192,7 @@ void parse_options(int argc, char *argv[])
         int option_index = 0;
         static struct option long_options[] =
             {
+             {"chroot",           1, 0, 'C'},
              {"ethertype",        1, 0, 'e'},
              {"no-ether",         0, 0, 'E'},
              {"foreground",       0, 0, 'f'},
@@ -203,10 +208,13 @@ void parse_options(int argc, char *argv[])
              {NULL,               0, 0, 0  }
             };
 
-        if ((c = getopt_long(argc, argv, "e:Efhi:o:p:Ps:uUv",
+        if ((c = getopt_long(argc, argv, "C:e:Efhi:o:p:Ps:uUv",
                      long_options, &option_index)) == -1) break;
 
         switch (c) {
+        case 'C':
+            g_chroot = optarg;
+            break;
         case 'e':
             g_ethertype = parse_uint16("Ether Type", optarg);
             if (g_ethertype < 0) {
@@ -928,6 +936,26 @@ int main(int argc, char *argv[])
     out_ifindex = get_if_index(out_socket, g_output_iface, "output");
     if (out_ifindex < 0) {
         goto exit_fail4;
+    }
+
+    /* Initialize syslog before an eventual chroot, it may be too late
+     * to connect to syslog after chroot() */
+    openlog(progname,
+            LOG_CONS|LOG_NDELAY| (g_foregnd ? LOG_PERROR : 0) | LOG_PID,
+            LOG_DAEMON);
+
+    /* Chroot if requested */
+    if (g_chroot != NULL) {
+        if (chdir(g_chroot) != 0) {
+            fprintf(stderr, "%s: while chroot()ing: couldn't chdir to \"%s\": %s\n",
+                    progname, g_chroot, strerror(errno));
+            goto exit_fail3;
+        }
+        if (chroot(g_chroot) != 0) {
+            fprintf(stderr, "%s: while chroot()ing: couldn't chroot to \"%s\": %s\n",
+                    progname, g_chroot, strerror(errno));
+            goto exit_fail3;
+        }
     }
 
     /* Root is not needed anymore, drop it if requested */

@@ -6,6 +6,10 @@
 	(usage_and_exit, parse_options): Add -s/--setuid option.
 	(get_listen_descr): Rename to get_features, add running user info.
 	(main): Change uid/gid to --setuid user if requested.
+	(g_chroot): Create.
+	(usage_and_exit, parse_options): Add -c/--chroot option.
+	(main): Process chroot() if requested.  Also connect to syslog
+	before chroot.
 
 	* configure.ac: Add AC_USE_SYSTEM_EXTENSIONS to set _GNU_SOURCE
 	for us for getresuid().
