@@ -1,6 +1,8 @@
 2019-04-13  Philippe Troin  <phil@fifi.org>
 
 	* configure.ac: Add call to AM_MISSING_PROG() for help2man.
+	Remove all the useless feature test macros.
+	Add copyright header.
 
 	* Makefile.am (HELP2MAN): Remove define.
 	(wolpd.8): Adjust help2man invocation.

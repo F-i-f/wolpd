@@ -1,5 +1,20 @@
-#                                               -*- Autoconf -*-
-# Process this file with autoconf to produce a configure script.
+#  wolpd - Wake-On-LAN Proxy Daemon
+#  configure.ac
+#  Copyright (C) 2010  Federico Simoncelli <federico.simoncelli@gmail.com>
+#  Copyright (C) 2019  Philippe Troin (F-i-f onj GitHub)
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 AC_PREREQ([2.63])
 AC_INIT([wolpd], [0.5.1], [federico.simoncelli@gmail.com])
@@ -13,22 +28,6 @@ AM_MISSING_PROG(HELP2MAN, help2man)
 
 # Checks for programs.
 AC_PROG_CC
-
-# Configure default CFLAGS.
-
-# Checks for libraries.
-
-# Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h netinet/in.h stdlib.h string.h sys/ioctl.h sys/socket.h syslog.h unistd.h])
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
-AC_TYPE_UINT16_T
-AC_TYPE_UINT8_T
-
-# Checks for library functions.
-AC_CHECK_FUNCS([inet_ntoa memset socket])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
