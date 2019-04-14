@@ -26,6 +26,7 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <netpacket/packet.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -71,7 +72,12 @@ struct validate_results {
 */
 const uint8_t wol_magic[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
+const int handled_signals[] = { SIGINT, SIGQUIT, SIGTERM, SIGHUP, 0 };
+
 const char *progname;
+volatile int g_interrupt_signum;
+
+/* Options */
 
 /* Ether Type to listen for WOL packets or ETHERTYPE_NO_LISTEN if not
  * listening to raw ether frames */
@@ -253,6 +259,44 @@ void parse_options(int argc, char *argv[])
                 progname);
         exit(EXIT_FAILURE);
     }
+}
+
+const char* get_listen_descr()
+{
+    char buf_ether[32];
+    char buf_udp[32];
+    static char buf_all[64];
+
+    if (g_ethertype == ETHERTYPE_NO_LISTEN) {
+        buf_ether[0] = '\0';
+    } else {
+        snprintf(buf_ether, sizeof(buf_ether),
+                 "Ethernet type 0x%04x",
+                 g_ethertype);
+    }
+
+    switch (g_udp_port) {
+    case UDP_PORT_NO_LISTEN:
+        buf_udp[0] = '\0';
+        break;
+    case UDP_PORT_LISTEN_ALL:
+        snprintf(buf_udp, sizeof(buf_udp),
+                 "all UDP ports");
+        break;
+    default:
+        snprintf(buf_udp, sizeof(buf_udp),
+                 "UDP port %d",
+                 g_udp_port);
+        break;
+    }
+
+    snprintf(buf_all, sizeof(buf_all),
+             "%s%s%s",
+             buf_ether,
+             (buf_ether[0] && buf_udp[0]) ? ", " : "",
+             buf_udp);
+
+    return buf_all;
 }
 
 
@@ -594,6 +638,8 @@ int forward_packets(int in_sock, const
             switch(errno) {
             case EAGAIN:
                 return 1;
+            case EINTR:
+                continue; /* the while() loop */
             default:
                 syslog(LOG_ERR, "couldn't receive data from %s input socket: %m", in_sock_descr);
                 return 0;
@@ -645,11 +691,17 @@ int forward_packets(int in_sock, const
         if (mismatch)
             continue;
 
+    send_again:
         if ((sent_len = sendto(out_sock, &wol_msg, (size_t) wol_len, 0,
                                (const struct sockaddr *) dst_addr, sizeof(*dst_addr))) < 0) {
-            syslog(LOG_ERR, "cannot forward %s WOL packet from %s: %m",
-                   in_sock_descr, validation_results.saddr_descr);
-            return 0;
+            switch (errno) {
+            case EINTR:
+                goto send_again;
+            default:
+                syslog(LOG_ERR, "cannot forward %s WOL packet from %s: %m",
+                       in_sock_descr, validation_results.saddr_descr);
+                return 0;
+            }
         }
 
         syslog(LOG_NOTICE, "magic %s packet from %s forwarded to "
@@ -757,6 +809,15 @@ int forward_udp(int in_sock, int out_sock, const struct sockaddr_ll *dst_addr)
 }
 
 /*
+ * Signal handlers
+ */
+
+void handle_signal(int signum)
+{
+    g_interrupt_signum = signum;
+}
+
+/*
  * Main
  */
 
@@ -773,6 +834,9 @@ int main(int argc, char *argv[])
     fd_set scan_set;
     fd_set ret_set;
     int select_ret;
+    struct sigaction sigact;
+    const int *p_int;
+    int exit_code = EXIT_FAILURE;
 
     progname = argv[0];
     ptr = strrchr(progname, '/');
@@ -827,6 +891,18 @@ int main(int argc, char *argv[])
         fill_lladdr(&out_lladdr_udp, ETH_P_IP, out_ifindex);
     }
 
+    memset(&sigact, 0, sizeof(sigact));
+    sigact.sa_handler = &handle_signal;
+    sigact.sa_flags   = SA_RESTART;
+    sigemptyset(&sigact.sa_mask);
+    for (p_int = handled_signals; *p_int; ++p_int) {
+        if (sigaction(*p_int, &sigact, NULL) != 0) {
+            fprintf(stderr, "%s: couldn't trap signal %d: %s\n",
+                    progname, *p_int, strerror(errno));
+            goto exit_fail4;
+        }
+    }
+
     if (g_foregnd == 0) {
         if (daemon(0, 0) != 0) {
             fprintf(stderr, "%s: couldn't fork a background process: %s\n",
@@ -835,13 +911,22 @@ int main(int argc, char *argv[])
         }
     }
 
-    while (1)
+    syslog(LOG_NOTICE, "started, listening on %s",
+           get_listen_descr());
+
+    g_interrupt_signum = 0;
+    while (! g_interrupt_signum)
     {
         ret_set = scan_set;
         select_ret = select(max_fd, &ret_set, NULL, NULL, NULL);
         if (select_ret < 0) {
-            syslog(LOG_ERR, "select(): %m");
-            goto exit_fail5;
+            switch(errno) {
+            case EINTR:
+                continue; /* the while() loop */
+            default:
+                syslog(LOG_ERR, "select(): %m");
+                goto exit_fail5;
+            }
         } else if (select_ret == 0) {
             syslog(LOG_ERR, "select() returned zero file descriptors");
             goto exit_fail5;
@@ -859,6 +944,9 @@ int main(int argc, char *argv[])
             goto exit_fail5;
         }
     }
+
+    syslog(LOG_NOTICE, "exiting on signal %d", g_interrupt_signum);
+    goto exit_fail4;
 
  exit_fail5:
     if (! g_foregnd) {
@@ -879,7 +967,7 @@ int main(int argc, char *argv[])
     }
 
  exit_fail1:
-    return EXIT_FAILURE;
+    return exit_code;
 }
 
 /*

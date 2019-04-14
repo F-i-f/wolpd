@@ -23,7 +23,11 @@
 	forward_packets(), validate_udp_packet.  Factorize output
 	link-level header filling to fill_lladdr().  Print a message when
 	terminating abnormally.
-
+	(handled_signals, get_listen_descr, handle_signal): Created.
+	(forward_packets): Handle EINTR from recv() and sendto().
+	(main): Handle EINTR from select().  Establish signal handlers
+	for handled_signals that terminate the process cleanly.  Print
+	messages on starting and termination.
 
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
