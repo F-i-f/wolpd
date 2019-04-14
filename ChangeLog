@@ -1,3 +1,30 @@
+2019-04-13  Philippe Troin  <phil@fifi.org>
+
+	* wolpd.c (ATTRIBUTE_UNUSED): Define to __attribute__((unused))
+	when gcc is in use.
+	(DEFAULT_PORT): Remove, no UDP port default anymore.
+	(WOL_MIN_PAYLOAD_SIZE, WOL_MIN_ETHER_RAW_SIZE, WOL_MIN_UDP_SIZE)
+	(WOL_MIN_UDP_RAW_SIZE, VALIDATE_RESULTS_ADDRESS_DESCR_SIZE)
+	(ETHERTYPE_NO_LISTEN, UDP_PORT_NO_LISTEN, UDP_PORT_LISTEN_ALL)
+	(struct validate_results): Create.
+	(usage_and_exit, parse_options): Define options -e/--ethertype,
+	-E/--no-ether, -u/--udp, -U/--no-udp.
+	(parse_uint16): Create.
+	(parse_options): Use parse_uint16 when parsing UDP port.
+	(setup_udp_filter): Check the frame size against minimums. Only
+	filter port if g_udp_port isn't UDP_PORT_LISTEN_ALL.
+	(setup_ether_filter, fill_lladdr, forward_packets)
+	(validate_ether_packet, forward_ether, validate_udp_packet)
+	(forward_udp): Create.
+	(main): Create at most 2 input sockets, one for UDP, other for raw
+	Ethernet frames.  Allow the UDP and Ethernet sockets to be turned
+	on or off.  Allow capture on all UDP ports. Use select() to wait
+	for next packet.  Factorize the validation and sending logic to
+	forward_packets(), validate_udp_packet.  Factorize output
+	link-level header filling to fill_lladdr().  Print a message when
+	terminating abnormally.
+
+
 2019-04-12  Philippe Troin  <phil@fifi.org>
 
 	* wolpd.c (setup_filter): Split the udp-specific parsing into

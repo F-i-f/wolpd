@@ -29,8 +29,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
 #include <syslog.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -41,29 +42,63 @@
 #include <config.h>
 #endif
 
-#define WOL_MIN_UDP_SIZE (sizeof(struct udphdr)+ETH_ALEN*17)
+#if __GNUC__
+# define ATTRIBUTE_UNUSED __attribute__((unused))
+#else /* ! __GNUC__ */
+# define ATTRIBUTE_UNUSED /**/
+#endif /* ! __GNUC__ */
 
-#define DEFAULT_PORT  9
+#define WOL_MIN_PAYLOAD_SIZE (ETH_ALEN*17)
+#define WOL_MIN_ETHER_RAW_SIZE (sizeof(struct ethhdr)+WOL_MIN_PAYLOAD_SIZE)
+#define WOL_MIN_UDP_SIZE (sizeof(struct udphdr)+WOL_MIN_PAYLOAD_SIZE)
+#define WOL_MIN_UDP_RAW_SIZE (sizeof(struct ethhdr)+sizeof(struct iphdr)+WOL_MIN_UDP_SIZE)
 
 #define ETH_P_WOL       0x0842
-
-uint8_t wol_magic[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
 struct eth_frame {
     struct ethhdr       head;
     uint8_t             data[ETH_DATA_LEN];
 };
 
+#define VALIDATE_RESULTS_ADDRESS_DESCR_SIZE 64
+struct validate_results {
+    const char* payload;
+    char        saddr_descr[VALIDATE_RESULTS_ADDRESS_DESCR_SIZE];
+};
+
+/*
+ * Globals
+*/
+const uint8_t wol_magic[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
 const char *progname;
 
-/* global options */
-int              g_foregnd      = 0;
-char            *g_input_iface  = NULL;
-char            *g_output_iface = NULL;
-uint16_t         g_port         = DEFAULT_PORT;
-int              g_promiscuous  = 0;
+/* Ether Type to listen for WOL packets or ETHERTYPE_NO_LISTEN if not
+ * listening to raw ether frames */
+#define ETHERTYPE_NO_LISTEN -1
+int g_ethertype = ETH_P_WOL;
 
+/* In foreground, don't daemonize if true */
+int g_foregnd = 0;
+
+/* Input interface, required */
+char *g_input_iface = NULL;
+
+/* Output interface, required */
+char *g_output_iface = NULL;
+
+/* UDP port to listen on or UDP_PORT_NO_LISTEN if not listening to UDP
+ * or UDP_PORT_LISTEN_ALL if listening to all UDP ports. */
+#define UDP_PORT_NO_LISTEN  -1
+#define UDP_PORT_LISTEN_ALL -2
+int g_udp_port = -1;
+
+/* Listen promiscuously if true */
+int g_promiscuous = 0;
+
+/*
+ * Help, usage.
+ */
 
 void version_and_exit()
 {
@@ -86,17 +121,49 @@ void usage_and_exit()
 %s is a Wake-On-Lan proxy daemon.\n\n\
 Usage: %s [OPTION]...\n\n\
 Options:\n\
-  -f, --foreground              don't fork to background.\n\
-  -h, --help                    print this help, then exit.\n\
-  -i, --input-interface=IFACE   source network interface.\n\
-  -o, --output-interface=IFACE  destination network interface.\n\
-  -p, --port=PORT               udp port used for wol packets (default: %i).\n\
-  -P, --promiscuous             put the input interface in promiscuous mode.\n\
-  -v, --version                 print version number, then exit.\n\n\
+  -e, --ethertype=ETHERTYPE     Listen for WOL packets with given ethernet type\n\
+                                (Default: 0x%04X)\n\
+  -E, --no-ether                Do not listen for raw ethernet WOL packets.\n\
+  -f, --foreground              Don't fork to background.\n\
+  -h, --help                    Print this help, then exit.\n\
+  -i, --input-interface=IFACE   Source network interface.\n\
+  -o, --output-interface=IFACE  Destination network interface.\n\
+  -p, --port=PORT               UDP port used for WOL packets.\n\
+                                Implies --udp.\n\
+  -P, --promiscuous             Put the input interface in promiscuous mode.\n\
+  -u, --udp                     Listens to UDP WOL packets.\n\
+                                Unless a PORT is specified with --port, listens\n\
+                                to *all* UDP ports.\n\
+  -U, --no-udp                  Do not listen for WOL packets on UDP. (default)\n\
+  -v, --version                 Print version number, then exit.\n\n\
 Report bugs to <%s>.\n",
-        PACKAGE_NAME, PACKAGE_NAME,
-        DEFAULT_PORT, PACKAGE_BUGREPORT);
+           PACKAGE_NAME, PACKAGE_NAME,
+           ETH_P_WOL, PACKAGE_BUGREPORT);
     exit(EXIT_SUCCESS);
+}
+
+int parse_uint16(const char *descr, const char *num)
+/* If returns >= 0, the 16-bit value.  Otherwise, an error
+ * occurred. */
+{
+    char *ptr;
+    long result;
+
+    result = strtol(num, &ptr, 0);
+
+    if (*ptr) {
+        fprintf(stderr, "%s: cannot parse \"%s\" as a %s.\n",
+                progname, num, descr);
+        return -1;
+    }
+
+    if (result < 0 || result >= 1<<16) {
+        fprintf(stderr, "%s: %ld is an invalid %s (must be in range 0..65535).\n",
+                progname, result, descr);
+        return -1;
+    }
+
+    return (int)result;
 }
 
 void parse_options(int argc, char *argv[])
@@ -105,21 +172,35 @@ void parse_options(int argc, char *argv[])
 
     while (1) {
         int option_index = 0;
-        static struct option long_options[] = {
-            {"foreground",       0, 0, 'f'},
-            {"help",             0, 0, 'h'},
-            {"input-interface",  1, 0, 'i'},
-            {"output-interface", 1, 0, 'o'},
-            {"port",             1, 0, 'p'},
-            {"promiscuous",      1, 0, 'P'},
-            {"version",          0, 0, 'v'},
-            {NULL,               0, 0, 0  }
-        };
+        static struct option long_options[] =
+            {
+             {"ethertype",        1, 0, 'e'},
+             {"no-ether",         0, 0, 'E'},
+             {"foreground",       0, 0, 'f'},
+             {"help",             0, 0, 'h'},
+             {"input-interface",  1, 0, 'i'},
+             {"output-interface", 1, 0, 'o'},
+             {"port",             1, 0, 'p'},
+             {"promiscuous",      1, 0, 'P'},
+             {"udp",              0, 0, 'u'},
+             {"no-udp",           0, 0, 'U'},
+             {"version",          0, 0, 'v'},
+             {NULL,               0, 0, 0  }
+            };
 
-        if ((c = getopt_long(argc, argv, "fhi:o:p:Pv",
+        if ((c = getopt_long(argc, argv, "e:Efhi:o:p:PuUv",
                      long_options, &option_index)) == -1) break;
 
         switch (c) {
+        case 'e':
+            g_ethertype = parse_uint16("Ether Type", optarg);
+            if (g_ethertype < 0) {
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case 'E':
+            g_ethertype = ETHERTYPE_NO_LISTEN;
+            break;
         case 'f':
             g_foregnd = 1;
             break;
@@ -133,49 +214,47 @@ void parse_options(int argc, char *argv[])
             g_output_iface = optarg;
             break;
         case 'p':
-            g_port = (uint16_t)atoi(optarg);
+            g_udp_port = parse_uint16("UDP port", optarg);
+            if (g_udp_port < 0) {
+                exit(EXIT_FAILURE);
+            }
             break;
         case 'P':
             g_promiscuous = 1;
+            break;
+        case 'u':
+            if (g_udp_port == UDP_PORT_NO_LISTEN) {
+                g_udp_port = UDP_PORT_LISTEN_ALL;
+            }
+            break;
+        case 'U':
+            g_udp_port = UDP_PORT_NO_LISTEN;
             break;
         case 'v':
             version_and_exit();
             break;
         }
     }
-}
 
-int get_if_index(int sock, const char *if_name, const char *if_description)
-{
-    struct ifreq ifhw;
-    memset(&ifhw, 0, sizeof(ifhw));
-    strncpy(ifhw.ifr_name, if_name, sizeof(ifhw.ifr_name));
-
-   if (ioctl(sock, SIOCGIFINDEX, &ifhw) < 0) {
-        fprintf(stderr, "%s: couldn't find %s interface %s: %s\n",
-                progname, if_description, if_name, strerror(errno));
-        return -1;
+    if (g_input_iface == NULL) {
+        fprintf(stderr, "%s: no input interface provided, use -i <interface>\n",
+                progname);
+        exit(EXIT_FAILURE);
     }
 
-   return ifhw.ifr_ifindex;
-}
+    if (g_output_iface == NULL) {
+        fprintf(stderr, "%s: no output interface provided, use -o <interface>\n",
+                progname);
+        exit(EXIT_FAILURE);
+    }
 
-int set_promiscuous(int sock, const char *ifname, int ifindex) /* returns true on ok, false on failure */
-{
-    struct packet_mreq mreq;
-
-    memset(&mreq, 0, sizeof(mreq));
-    mreq.mr_ifindex = ifindex;
-    mreq.mr_type    = PACKET_MR_PROMISC;
-
-    if (setsockopt(sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) != 0) {
-        fprintf(stderr, "%s: cannot add promiscuous membership on interface \"%s\" at index %d: %s\n",
-                progname, ifname, ifindex, strerror(errno));
-        return 0;
-    } else {
-        return 1;
+    if (g_udp_port == UDP_PORT_NO_LISTEN && g_ethertype == ETHERTYPE_NO_LISTEN) {
+        fprintf(stderr, "%s: listening both off on UDP and raw Ethernet, nothing to do\n",
+                progname);
+        exit(EXIT_FAILURE);
     }
 }
+
 
 /*
  * BPF code
@@ -195,44 +274,44 @@ int setup_filter(int sock,
      * offset to the payload. */
     static const struct sock_filter filter_payload[] =
         {
-         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,               0),               /* UDP payload bytes 0-3 */
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,           (uint)-1,    0, JEND ), /* ff:ff:ff:ff */
-         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,               4),               /* UDP payload bytes 4-5 */
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,             0xffff,    0, JEND ), /* ff:ff */
+         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,                     0),               /* UDP payload bytes 0-3 */
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,                 (uint)-1,    0, JEND ), /* ff:ff:ff:ff */
+         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,                     4),               /* UDP payload bytes 4-5 */
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,                   0xffff,    0, JEND ), /* ff:ff */
 
-         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,               6),               /* UDP payload bytes 6-9 */
-         BPF_STMT(BPF_ST,                                      0),               /* Store in Mem[0] */
-         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,              10),               /* UDP payload bytes 10-11 */
-         BPF_STMT(BPF_ST,                                      1),               /* Store in Mem[1] */
+         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,                     6),               /* UDP payload bytes 6-9 */
+         BPF_STMT(BPF_ST,                                            0),               /* Store in Mem[0] */
+         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,                    10),               /* UDP payload bytes 10-11 */
+         BPF_STMT(BPF_ST,                                            1),               /* Store in Mem[1] */
 
-         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,              12),               /* Compare first copy #1 */
-         BPF_STMT(BPF_STX,                                     3),               /* Store X in Mem[3] */
-         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,               0),
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_X,                 0,     0, JEND ),
-         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,               3),
-         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,              16),
-         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,               1),
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_X,                 0,     0, JEND ),
+         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,                    12),               /* Compare first copy #1 */
+         BPF_STMT(BPF_STX,                                           3),               /* Store X in Mem[3] */
+         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,                     0),
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_X,                       0,     0, JEND ),
+         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,                     3),
+         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,                    16),
+         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,                     1),
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_X,                       0,     0, JEND ),
 
-         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,               3),
-         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,              10),               /* UDP payload bytes 10-13 */
-         BPF_STMT(BPF_ST,                                      1),               /* Store in Mem[1] */
-         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,              14),               /* UDP payload bytes 14-17 */
-         BPF_STMT(BPF_ST,                                      2),               /* Store in Mem[1] */
+         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,                     3),
+         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,                    10),               /* UDP payload bytes 10-13 */
+         BPF_STMT(BPF_ST,                                            1),               /* Store in Mem[1] */
+         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,                    14),               /* UDP payload bytes 14-17 */
+         BPF_STMT(BPF_ST,                                            2),               /* Store in Mem[1] */
 
-#define BPF_WOL_MACS_PAYLOAD_CHECK(udpoff)                                        \
-         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,               3),                 \
-         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,        udpoff+0),                 \
-         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,               0),                 \
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_X,                 0,     0, JEND ),   \
-         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,               3),                 \
-         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,        udpoff+4),                 \
-         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,               1),                 \
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_X,                 0,     0, JEND ),   \
-         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,               3),                 \
-         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,        udpoff+8),                 \
-         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,               2),                 \
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_X,                 0,     0, JEND )
+#define BPF_WOL_MACS_PAYLOAD_CHECK(udpoff)                                              \
+         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,                     3),                 \
+         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,              udpoff+0),                 \
+         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,                     0),                 \
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_X,                       0,     0, JEND ),   \
+         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,                     3),                 \
+         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,              udpoff+4),                 \
+         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,                     1),                 \
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_X,                       0,     0, JEND ),   \
+         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,                     3),                 \
+         BPF_STMT(BPF_LD   + BPF_W    + BPF_IND,              udpoff+8),                 \
+         BPF_STMT(BPF_LDX  + BPF_W    + BPF_MEM,                     2),                 \
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_X,                       0,     0, JEND )
 
          BPF_WOL_MACS_PAYLOAD_CHECK( 18),
          BPF_WOL_MACS_PAYLOAD_CHECK( 30),
@@ -244,8 +323,8 @@ int setup_filter(int sock,
 
 #undef BPF_WOL_MACS_PAYLOAD_CHECK
 
-         BPF_STMT(BPF_RET  + BPF_K,                       0xffff),               /* Return whole packet */
-         BPF_STMT(BPF_RET  + BPF_K,                            0),               /* Drop */
+         BPF_STMT(BPF_RET  + BPF_K,                             0xffff),               /* Return whole packet */
+         BPF_STMT(BPF_RET  + BPF_K,                                  0),               /* Drop */
         };
 
     struct sock_fprog prog;
@@ -289,39 +368,393 @@ int setup_filter(int sock,
 }
 
 int setup_udp_filter(int sock)
+/* returns true on ok, false on failure */
 {
-    const struct sock_filter filter_udp[] =
+    static const struct sock_filter filter_udp_1[] =
         {
-         BPF_STMT(BPF_LD   + BPF_H    + BPF_ABS,              12),               /* Ethertype */
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,           ETH_P_IP,    0, JEND ), /* is IP */
+         BPF_STMT(BPF_LD   + BPF_W    + BPF_LEN,                     0),               /* Frame length */
+         BPF_JUMP(BPF_JMP  + BPF_JGE  + BPF_K,     WOL_MIN_UDP_RAW_SIZE,    0, JEND ), /* is big enough */
 
-         BPF_STMT(BPF_LD   + BPF_B    + BPF_ABS,              14),               /* A = IPversion (4 MSB) + IHL (4 LSB) */
-         BPF_STMT(BPF_ALU  + BPF_RSH  + BPF_K,                 4),               /* A = IPversion */
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,          IPVERSION,    0, JEND ), /* is IPv4 */
+         BPF_STMT(BPF_LD   + BPF_H    + BPF_ABS,                    12),               /* Ethertype */
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,                 ETH_P_IP,    0, JEND ), /* is IP */
 
-         BPF_STMT(BPF_LD   + BPF_H    + BPF_ABS,              20),               /* Flags + Fragment offset */
-         BPF_JUMP(BPF_JMP  + BPF_JSET + BPF_K,             0x3fff, JEND,    0 ), /* More Fragment == 0 && Frag. id == 0 */
+         BPF_STMT(BPF_LD   + BPF_B    + BPF_ABS,                    14),               /* A = IPversion (4 MSB) + IHL (4 LSB) */
+         BPF_STMT(BPF_ALU  + BPF_RSH  + BPF_K,                       4),               /* A = IPversion */
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,                IPVERSION,    0, JEND ), /* is IPv4 */
 
-         BPF_STMT(BPF_LD   + BPF_B    + BPF_ABS,              23),               /* IP Proto */
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,        IPPROTO_UDP,    0, JEND ), /* is UDP */
+         BPF_STMT(BPF_LD   + BPF_H    + BPF_ABS,                    20),               /* Flags + Fragment offset */
+         BPF_JUMP(BPF_JMP  + BPF_JSET + BPF_K,                   0x3fff, JEND,    0 ), /* More Fragment == 0 && Frag. id == 0 */
 
-         BPF_STMT(BPF_LDX  + BPF_B    + BPF_MSH,              14),               /* X = number of IPv4 header bytes) */
-         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,              16),               /* X + 14 for Ethernet + 2 UDP dport  */
-         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,             g_port,    0, JEND ), /* UDP port is g_port */
+         BPF_STMT(BPF_LD   + BPF_B    + BPF_ABS,                    23),               /* IP Proto */
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,              IPPROTO_UDP,    0, JEND ), /* is UDP */
 
-         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,              18),               /* X + 14 for Ethernet + 4 UDP length  */
-         BPF_JUMP(BPF_JMP  + BPF_JGE  + BPF_K,   WOL_MIN_UDP_SIZE,    0, JEND ), /* Size is at least WOL packet */
-
-         BPF_STMT(BPF_MISC + BPF_TXA,                          0),               /* A <- X */
-         BPF_STMT(BPF_ALU  + BPF_ADD  + BPF_K,                22),               /* A = offset to beginning of UDP payload */
-         BPF_STMT(BPF_MISC + BPF_TAX,                          0),               /* X <- A */
+         BPF_STMT(BPF_LDX  + BPF_B    + BPF_MSH,                    14),               /* X = number of IPv4 header bytes) */
         };
 
-    return setup_filter(sock, filter_udp, sizeof(filter_udp)/sizeof(filter_udp[0]));
+    const struct sock_filter filter_udp_port[] =
+        {
+         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,                    16),               /* X + 14 for Ethernet + 2 UDP dport  */
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,               g_udp_port,    0, JEND ), /* UDP port is g_udp_port */
+        };
+
+    static const struct sock_filter filter_udp_2[] =
+        {
+         BPF_STMT(BPF_LD   + BPF_H    + BPF_IND,                    18),               /* X + 14 for Ethernet + 4 UDP length  */
+         BPF_JUMP(BPF_JMP  + BPF_JGE  + BPF_K,         WOL_MIN_UDP_SIZE,    0, JEND ), /* Size is at least WOL packet */
+
+         BPF_STMT(BPF_MISC + BPF_TXA,                                0),               /* A <- X */
+         BPF_STMT(BPF_ALU  + BPF_ADD  + BPF_K,                      22),               /* A = offset to beginning of UDP payload */
+         BPF_STMT(BPF_MISC + BPF_TAX,                                0),               /* X <- A */
+        };
+
+    size_t filter_len;
+    struct sock_filter *filter;
+    struct sock_filter *filter_ptr;
+    int ret;
+
+    filter_len = sizeof(filter_udp_1)/sizeof(filter_udp_1[0])
+        + sizeof(filter_udp_2)/sizeof(filter_udp_2[0]);
+
+    if (g_udp_port != UDP_PORT_LISTEN_ALL) {
+        filter_len += sizeof(filter_udp_port)/sizeof(filter_udp_port[0]);
+    }
+
+    filter = (struct sock_filter *)malloc(sizeof(filter_udp_1[0]) * filter_len);
+    if (filter == NULL) {
+        fprintf(stderr, "%s: couldn't allocate %u bytes of memory: %s\n",
+                progname, (unsigned)(sizeof(filter_udp_1[0]) * filter_len), strerror(errno));
+        return 0; /* fail */
+    }
+
+    filter_ptr = filter;
+
+    memcpy(filter, filter_udp_1, sizeof(filter_udp_1));
+    filter_ptr += sizeof(filter_udp_1)/sizeof(filter_udp_1[0]);
+
+    if (g_udp_port != UDP_PORT_LISTEN_ALL) {
+        memcpy(filter_ptr , filter_udp_port, sizeof(filter_udp_port));
+        filter_ptr += sizeof(filter_udp_port)/sizeof(filter_udp_port[0]);
+    }
+
+    memcpy(filter_ptr, filter_udp_2, sizeof(filter_udp_2));
+
+    ret = setup_filter(sock, filter, filter_len);
+
+    free(filter);
+
+    return ret;
+}
+
+int setup_ether_filter(int sock)
+/* returns true on ok, false on failure */
+{
+    const struct sock_filter filter_ether[] =
+        {
+         BPF_STMT(BPF_LD   + BPF_W    + BPF_LEN,                     0),               /* Frame length */
+         BPF_JUMP(BPF_JMP  + BPF_JGE  + BPF_K,   WOL_MIN_ETHER_RAW_SIZE,    0, JEND ), /* is big enough */
+
+         BPF_STMT(BPF_LD   + BPF_H    + BPF_ABS,                    12),               /* Ethertype */
+         BPF_JUMP(BPF_JMP  + BPF_JEQ  + BPF_K,              g_ethertype,    0, JEND ), /* is the selected Ether Type */
+
+         BPF_STMT(BPF_LDX  + BPF_W    + BPF_K,                      14),               /* X = offset to Ethernet payload */
+        };
+
+    return setup_filter(sock, filter_ether, sizeof(filter_ether)/sizeof(filter_ether[0]));
 }
 
 #undef JEND
 
+/*
+ * Raw socket setup
+ */
+
+int get_if_index(int sock, const char *if_name, const char *if_description)
+{
+    struct ifreq ifhw;
+    memset(&ifhw, 0, sizeof(ifhw));
+    strncpy(ifhw.ifr_name, if_name, sizeof(ifhw.ifr_name));
+
+   if (ioctl(sock, SIOCGIFINDEX, &ifhw) < 0) {
+        fprintf(stderr, "%s: couldn't find %s interface %s: %s\n",
+                progname, if_description, if_name, strerror(errno));
+        return -1;
+    }
+
+   return ifhw.ifr_ifindex;
+}
+
+int set_promiscuous(int sock, const char *ifname, int ifindex) /* returns true on ok, false on failure */
+{
+    struct packet_mreq mreq;
+
+    memset(&mreq, 0, sizeof(mreq));
+    mreq.mr_ifindex = ifindex;
+    mreq.mr_type    = PACKET_MR_PROMISC;
+
+    if (setsockopt(sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) != 0) {
+        fprintf(stderr, "%s: cannot add promiscuous membership on interface \"%s\" at index %d: %s\n",
+                progname, ifname, ifindex, strerror(errno));
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+int setup_input_socket(uint16_t ethertype, int (*setup_filter_function)(int))
+/* Return the socket fd or -1 if failed */
+{
+    struct sockaddr_ll lladdr;
+    int sock;
+    int ifindex;
+    int flags;
+
+    if ((sock = socket(PF_PACKET, SOCK_RAW, htons(ethertype))) < 0 ) {
+        fprintf(stderr, "%s: couldn't open input socket: %s\n",
+                progname, strerror(errno));
+        return -1;
+    }
+
+    if (!setup_filter_function(sock)) {
+        goto exit_fail;
+    }
+
+    ifindex = get_if_index(sock, g_input_iface, "input");
+    if (ifindex < 0) {
+        goto exit_fail;
+    }
+
+    memset(&lladdr, 0, sizeof(lladdr));
+    lladdr.sll_family   = AF_PACKET;
+    lladdr.sll_protocol = htons(ethertype);
+    lladdr.sll_ifindex  = ifindex;
+    lladdr.sll_hatype   = ARPHRD_ETHER;
+    lladdr.sll_pkttype  = PACKET_OTHERHOST;
+    lladdr.sll_halen    = ETH_ALEN;
+
+    if (bind(sock, (struct sockaddr *) &lladdr, sizeof(lladdr)) < 0) {
+        fprintf(stderr, "%s: bind AF_PACKET interface %s at index %d: %s\n",
+                progname, g_input_iface, ifindex, strerror(errno));
+        goto exit_fail;
+    }
+
+    if (g_promiscuous && ! set_promiscuous(sock, g_input_iface, ifindex)) {
+        goto exit_fail;
+    }
+
+    flags = fcntl(sock, F_GETFL, 0);
+    if (flags == -1) {
+        fprintf(stderr, "%s: fcntl(F_GETFL) on input socket: %s\n",
+                progname, strerror(errno));
+        goto exit_fail;
+    }
+    if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) == -1) {
+        fprintf(stderr, "%s: fcntl(F_SETFL) on input socket: %s\n",
+                progname, strerror(errno));
+        goto exit_fail;
+    }
+
+    return sock;
+
+ exit_fail:
+    close(sock);
+    return -1;
+}
+
+void fill_lladdr(struct sockaddr_ll *lladdr, uint16_t ethertype, int ifindex)
+{
+    memset(lladdr, 0, sizeof(*lladdr));
+    lladdr->sll_family   = AF_PACKET;
+    lladdr->sll_protocol = htons(ethertype);
+    lladdr->sll_ifindex  = ifindex;
+    lladdr->sll_hatype   = ARPHRD_ETHER;
+    lladdr->sll_halen    = ETH_ALEN;
+}
+
+/*
+ * Queue processing
+ */
+
+int forward_packets(int in_sock, const
+                    char* in_sock_descr,
+                    size_t min_packet_size,
+                    uint16_t ethertype,
+                    int (*validate_packet)(struct validate_results*, const struct eth_frame*, const char*),
+                    int out_sock,
+                    const struct sockaddr_ll *dst_addr)
+/* returns true on ok, false on failure */
+{
+    struct eth_frame        wol_msg;
+    struct validate_results validation_results;
+    ssize_t                 wol_len, sent_len;
+    int                     i, mismatch;
+
+    while (1) {
+
+        if ((wol_len = recv( in_sock, &wol_msg, sizeof(wol_msg), 0)) < 0) {
+            switch(errno) {
+            case EAGAIN:
+                return 1;
+            default:
+                syslog(LOG_ERR, "couldn't receive data from %s input socket: %m", in_sock_descr);
+                return 0;
+            }
+        }
+
+        if (wol_len == 0) {
+            syslog(LOG_ERR, "end of file on %s input socket", in_sock_descr);
+            return 0;
+        }
+
+        if ((size_t)wol_len < min_packet_size) {
+            syslog(LOG_ERR, "short packet (%lu < %lu) on %s input socket",
+                   (unsigned long)wol_len, (unsigned long)min_packet_size, in_sock_descr);
+            continue;
+        }
+
+        if (ntohs(wol_msg.head.h_proto) != ethertype) {
+            syslog(LOG_WARNING, "dropped %s packet with Ethernet protocol 0x%04x from %02x:%02x:%02x:%02x:%02x:%02x",
+                   in_sock_descr,
+                   ntohs(wol_msg.head.h_proto),
+                   wol_msg.head.h_source[0], wol_msg.head.h_source[1], wol_msg.head.h_source[2],
+                   wol_msg.head.h_source[3], wol_msg.head.h_source[4], wol_msg.head.h_source[5]);
+            continue;
+        }
+
+
+        if ( ! validate_packet(&validation_results, &wol_msg, in_sock_descr) ) {
+            continue;
+        }
+
+        if (memcmp(validation_results.payload, wol_magic, ETH_ALEN) != 0) {
+            syslog(LOG_NOTICE, "dropped %s non-WOL (missing initial 6 x 0xff) packet from %s",
+                   in_sock_descr, validation_results.saddr_descr);
+            continue;
+        }
+
+        mismatch = 0;
+        for (i=1; i < 16; ++i) {
+            if (memcmp(validation_results.payload + ETH_ALEN,
+                       validation_results.payload + ETH_ALEN * (i+1),
+                       ETH_ALEN)) {
+                syslog(LOG_NOTICE, "dropped %s non-WOL (mismatch WOP copy #%d) packet from %s",
+                       in_sock_descr, i, validation_results.saddr_descr);
+                mismatch=1;
+                break;
+            }
+        }
+        if (mismatch)
+            continue;
+
+        if ((sent_len = sendto(out_sock, &wol_msg, (size_t) wol_len, 0,
+                               (const struct sockaddr *) dst_addr, sizeof(*dst_addr))) < 0) {
+            syslog(LOG_ERR, "cannot forward %s WOL packet from %s: %m",
+                   in_sock_descr, validation_results.saddr_descr);
+            return 0;
+        }
+
+        syslog(LOG_NOTICE, "magic %s packet from %s forwarded to "
+               "%02x:%02x:%02x:%02x:%02x:%02x",
+               in_sock_descr, validation_results.saddr_descr,
+               wol_msg.head.h_dest[0], wol_msg.head.h_dest[1],
+               wol_msg.head.h_dest[2], wol_msg.head.h_dest[3],
+               wol_msg.head.h_dest[4], wol_msg.head.h_dest[5]
+               );
+
+        if (wol_len != sent_len) {
+            syslog(LOG_WARNING, "short write: %u/%u bytes sent when forwarding %s packet from %s",
+                   (unsigned)sent_len, (unsigned)wol_len,
+                   in_sock_descr, validation_results.saddr_descr);
+            continue;
+        }
+    }
+}
+
+int validate_ether_packet(struct validate_results *results,
+                          const struct eth_frame* frame,
+                          ATTRIBUTE_UNUSED const char*  sock_descr)
+/* returns true on ok, false on failure */
+{
+    snprintf(results->saddr_descr, sizeof(results->saddr_descr),
+             "%02x:%02x:%02x:%02x:%02x:%02x",
+             frame->head.h_source[0], frame->head.h_source[1],
+             frame->head.h_source[2], frame->head.h_source[3],
+             frame->head.h_source[4], frame->head.h_source[5]);
+    results->payload = (const char*)&frame->data;
+
+    return 1;
+}
+
+int forward_ether(int in_sock, int out_sock, const struct sockaddr_ll *dst_addr)
+/* returns true on ok, false on failure */
+{
+    return forward_packets(in_sock, "raw Ethernet",
+                           WOL_MIN_ETHER_RAW_SIZE, g_ethertype,
+                           & validate_ether_packet,
+                           out_sock, dst_addr);
+}
+
+int validate_udp_packet(struct validate_results *results,
+                        const struct eth_frame* frame,
+                        const char* sock_descr)
+/* returns true on ok, false on failure */
+{
+    struct iphdr *ip_head;
+    struct udphdr *udp_head;
+
+    ip_head = (struct iphdr*) frame->data;
+    udp_head = (struct udphdr*) ((char*)frame->data + (ip_head->ihl << 2));
+
+    if (ip_head->version != IPVERSION) {
+        syslog(LOG_WARNING, "dropped %s packet with IP version %d from %02X:%02X:%02X:%02X:%02X:%02X",
+               sock_descr,
+               ip_head->version,
+               frame->head.h_source[0], frame->head.h_source[1], frame->head.h_source[2],
+               frame->head.h_source[3], frame->head.h_source[4], frame->head.h_source[5]);
+        return 0;
+    }
+
+    if (g_udp_port == UDP_PORT_LISTEN_ALL) {
+        snprintf(results->saddr_descr, sizeof(results->saddr_descr),
+                 "%s (UDP dport %d)",
+                 inet_ntoa(*(struct in_addr*)&ip_head->saddr),
+                 ntohs(udp_head->uh_dport));
+    } else {
+        snprintf(results->saddr_descr, sizeof(results->saddr_descr),
+                 "%s",
+                 inet_ntoa(*(struct in_addr*)&ip_head->saddr));
+    }
+
+    if (ip_head->protocol != IPPROTO_UDP) {
+        syslog(LOG_WARNING, "dropped %s packet with IP protocol %d from %s",
+               sock_descr, ip_head->protocol, results->saddr_descr);
+        return 0;
+    }
+
+    if (g_udp_port != UDP_PORT_LISTEN_ALL && ntohs(udp_head->uh_dport) != g_udp_port) {
+        syslog(LOG_WARNING, "dropped %s wrong UDP port %d packet from %s",
+               sock_descr, ntohs(udp_head->uh_dport), results->saddr_descr);
+        return 0;
+    }
+
+    if (ntohs(udp_head->uh_ulen) < WOL_MIN_UDP_SIZE) {
+        syslog(LOG_WARNING, "dropped %s packet with wrong size %d-byte packet from %s",
+               sock_descr, ntohs(udp_head->uh_ulen), results->saddr_descr);
+        return 0;
+    }
+
+    results->payload = (const char*)(udp_head+1);
+
+    return 1;
+}
+
+int forward_udp(int in_sock, int out_sock, const struct sockaddr_ll *dst_addr)
+/* returns true on ok, false on failure */
+{
+    return forward_packets(in_sock, "UDP",
+                           WOL_MIN_UDP_RAW_SIZE, ETH_P_IP,
+                           & validate_udp_packet,
+                           out_sock, dst_addr);
+}
 
 /*
  * Main
@@ -330,14 +763,16 @@ int setup_udp_filter(int sock)
 int main(int argc, char *argv[])
 {
     const char* ptr;
-    int in_socket, out_socket;
-    int in_ifindex, out_ifindex;
-    struct eth_frame wol_msg;
-    ssize_t wol_len, sent_len;
-    struct sockaddr_ll in_lladdr, out_lladdr;
-    struct iphdr *ip_head;
-    struct udphdr *udp_head;
-    int i, mismatch;
+    int in_socket_ether = -1;
+    int in_socket_udp = -1;
+    int out_socket;
+    int out_ifindex;
+    struct sockaddr_ll out_lladdr_udp;
+    struct sockaddr_ll out_lladdr_ether;
+    int max_fd = -1;
+    fd_set scan_set;
+    fd_set ret_set;
+    int select_ret;
 
     progname = argv[0];
     ptr = strrchr(progname, '/');
@@ -347,173 +782,103 @@ int main(int argc, char *argv[])
 
     parse_options(argc, argv);
 
-    if (g_input_iface == NULL) {
-        fprintf(stderr, "%s: no input interface provided, use -i <interface>\n",
-                progname);
-        exit(EXIT_FAILURE);
-    }
-
-    if (g_output_iface == NULL) {
-        fprintf(stderr, "%s: no output interface provided, use -o <interface>\n",
-                progname);
-        exit(EXIT_FAILURE);
-    }
-
     /* Set up external/input socket */
-    if ((in_socket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IP))) < 0 ) {
-        fprintf(stderr, "%s: couldn't open external socket: %s\n",
-                progname, strerror(errno));
-        goto exit_fail1;
+    FD_ZERO(&scan_set);
+
+    if (g_ethertype != ETHERTYPE_NO_LISTEN) {
+        in_socket_ether = setup_input_socket(g_ethertype, &setup_ether_filter);
+        if (in_socket_ether < 0) {
+            goto exit_fail2;
+        }
+        FD_SET(in_socket_ether, &scan_set);
+        if (in_socket_ether >= max_fd) {
+            max_fd = in_socket_ether+1;
+        }
     }
 
-    if (!setup_udp_filter(in_socket)) {
-        goto exit_fail2;
-    }
-
-    in_ifindex = get_if_index(in_socket, g_input_iface, "input");
-    if (in_ifindex < 0) {
-        goto exit_fail2;
-    }
-
-    memset(&in_lladdr, 0, sizeof(in_lladdr));
-    in_lladdr.sll_family   = AF_PACKET;
-    in_lladdr.sll_protocol = htons(ETH_P_IP);
-    in_lladdr.sll_ifindex  = in_ifindex;
-    in_lladdr.sll_hatype   = ARPHRD_ETHER;
-    in_lladdr.sll_pkttype  = PACKET_OTHERHOST;
-    in_lladdr.sll_halen    = ETH_ALEN;
-
-    if (bind(in_socket, (struct sockaddr *) &in_lladdr, sizeof(in_lladdr)) < 0) {
-        fprintf(stderr, "%s: bind AF_PACKET interface %s at index %d: %s\n",
-                progname, g_input_iface, in_ifindex, strerror(errno));
-        goto exit_fail2;
-    }
-
-    if (g_promiscuous && ! set_promiscuous(in_socket, g_input_iface, in_ifindex)) {
-        goto exit_fail2;
+    if (g_udp_port != UDP_PORT_NO_LISTEN) {
+        in_socket_udp = setup_input_socket(ETH_P_IP, &setup_udp_filter);
+        if (in_socket_udp < 0) {
+            goto exit_fail1;
+        }
+        FD_SET(in_socket_udp, &scan_set);
+        if (in_socket_udp >= max_fd) {
+            max_fd = in_socket_udp+1;
+        }
     }
 
     /* Set up internal/output socket */
     if ((out_socket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IP))) < 0 ) {
         fprintf(stderr, "%s: couldn't open internal socket: %s\n",
                 progname, strerror(errno));
-        goto exit_fail2;
+        goto exit_fail3;
     }
 
     out_ifindex = get_if_index(out_socket, g_output_iface, "external");
     if (out_ifindex < 0) {
-        goto exit_fail3;
+        goto exit_fail4;
     }
 
-    memset(&out_lladdr, 0, sizeof(out_lladdr));
-    out_lladdr.sll_family   = AF_PACKET;
-    out_lladdr.sll_protocol = htons(ETH_P_IP);
-    out_lladdr.sll_ifindex  = out_ifindex;
-    out_lladdr.sll_hatype   = ARPHRD_ETHER;
-    out_lladdr.sll_halen    = ETH_ALEN;
+    if (in_socket_ether >= 0) {
+        fill_lladdr(&out_lladdr_ether, g_ethertype, out_ifindex);
+    }
+
+    if (in_socket_udp >= 0) {
+        fill_lladdr(&out_lladdr_udp, ETH_P_IP, out_ifindex);
+    }
 
     if (g_foregnd == 0) {
         if (daemon(0, 0) != 0) {
             fprintf(stderr, "%s: couldn't fork a background process: %s\n",
                     progname, strerror(errno));
-            goto exit_fail3;
+            goto exit_fail4;
         }
     }
 
     while (1)
     {
-        if ((wol_len = recv( in_socket, &wol_msg, sizeof(wol_msg), 0)) < 0) {
-            syslog(LOG_ERR, "couldn't receive data from external socket: %m");
-            goto exit_fail3;
+        ret_set = scan_set;
+        select_ret = select(max_fd, &ret_set, NULL, NULL, NULL);
+        if (select_ret < 0) {
+            syslog(LOG_ERR, "select(): %m");
+            goto exit_fail5;
+        } else if (select_ret == 0) {
+            syslog(LOG_ERR, "select() returned zero file descriptors");
+            goto exit_fail5;
         }
 
-        ip_head = (struct iphdr*) &wol_msg.data;
-        udp_head = (struct udphdr*) ((char*)&wol_msg.data + (ip_head->ihl << 2));
-
-        if (ntohs(wol_msg.head.h_proto) != ETH_P_IP) {
-            syslog(LOG_WARNING, "dropped packet with Ethernet protocol 0x%04x from %02X:%02X:%02X:%02X:%02X:%02X",
-                   ntohs(wol_msg.head.h_proto),
-                   wol_msg.head.h_source[0], wol_msg.head.h_source[1], wol_msg.head.h_source[2],
-                   wol_msg.head.h_source[3], wol_msg.head.h_source[4], wol_msg.head.h_source[5]);
-            continue;
+        if (in_socket_ether >= 0
+            && FD_ISSET(in_socket_ether, &ret_set)
+            && ! forward_ether(in_socket_ether, out_socket, &out_lladdr_ether)) {
+            goto exit_fail5;
         }
 
-        if (ip_head->version != IPVERSION) {
-            syslog(LOG_WARNING, "dropped packet with IP version %d from %02X:%02X:%02X:%02X:%02X:%02X",
-                   ip_head->version,
-                   wol_msg.head.h_source[0], wol_msg.head.h_source[1], wol_msg.head.h_source[2],
-                   wol_msg.head.h_source[3], wol_msg.head.h_source[4], wol_msg.head.h_source[5]);
-            continue;
-        }
-
-        if (ip_head->protocol != IPPROTO_UDP) {
-            syslog(LOG_WARNING, "dropped packet with IP protocol %d from %s",
-                   ip_head->protocol, inet_ntoa(*(struct in_addr*)&ip_head->saddr));
-            continue;
-        }
-
-        if (ntohs(udp_head->uh_dport) != g_port) {
-            syslog(LOG_WARNING, "dropped wrong UDP port %d packet from %s",
-                   ntohs(udp_head->uh_dport), inet_ntoa(*(struct in_addr*)&ip_head->saddr));
-            continue;
-        }
-
-        if (ntohs(udp_head->uh_ulen) != WOL_MIN_UDP_SIZE) {
-            syslog(LOG_WARNING, "dropped wrong size %d-byte packet from %s",
-                   ntohs(udp_head->uh_ulen), inet_ntoa(*(struct in_addr*)&ip_head->saddr));
-            continue;
-        }
-
-        if (memcmp(udp_head+1, wol_magic, ETH_ALEN) != 0) {
-            syslog(LOG_NOTICE, "dropped non-WOL (missing initial 6 x 0xff) packet from %s",
-                   inet_ntoa(*(struct in_addr*)&ip_head->saddr));
-            continue;
-        }
-
-        mismatch = 0;
-        for (i=2; i <= 16; ++i) {
-            if (memcmp((unsigned char*)(udp_head+1) + ETH_ALEN,
-                       (unsigned char*)(udp_head+1) + ETH_ALEN * i,
-                       ETH_ALEN)) {
-                syslog(LOG_NOTICE, "dropped non-WOL (mismatch WOP copy #%d) packet from %s",
-                       i=1, inet_ntoa(*(struct in_addr*)&ip_head->saddr));
-                mismatch=1;
-                break;
-            }
-        }
-        if (mismatch)
-            continue;
-
-        if ((sent_len = sendto(out_socket, &wol_msg, (size_t) wol_len, 0,
-                              (struct sockaddr *) &out_lladdr, sizeof(out_lladdr))) < 0) {
-            syslog(LOG_ERR, "cannot forward WOL packet from %s: %m",
-                   inet_ntoa(*(struct in_addr*)&ip_head->saddr));
-            goto exit_fail3;
-        }
-
-        syslog(LOG_NOTICE, "magic packet from %s forwarded to "
-            "%2.2hhx:%2.2hhx:%2.2hhx:%2.2hhx:%2.2hhx:%2.2hhx",
-            inet_ntoa(*(struct in_addr*)&ip_head->saddr),
-            wol_msg.head.h_dest[0], wol_msg.head.h_dest[1],
-            wol_msg.head.h_dest[2], wol_msg.head.h_dest[3],
-            wol_msg.head.h_dest[4], wol_msg.head.h_dest[5]
-        );
-
-        if (wol_len != sent_len) {
-            syslog(LOG_WARNING, "short write: %u/%u bytes sent when forwarding packet from %s",
-                   (unsigned)sent_len, (unsigned)wol_len,
-                   inet_ntoa(*(struct in_addr*)&ip_head->saddr));
-            continue;
+        if (in_socket_udp >= 0
+            && FD_ISSET(in_socket_udp, &ret_set)
+            && ! forward_udp(in_socket_udp, out_socket, &out_lladdr_udp)) {
+            goto exit_fail5;
         }
     }
 
-exit_fail3:
+ exit_fail5:
+    if (! g_foregnd) {
+        syslog(LOG_ERR, "exiting on failure");
+    }
+
+ exit_fail4:
     close(out_socket);
 
-exit_fail2:
-    close(in_socket);
+ exit_fail3:
+    if (in_socket_ether >= 0) {
+        close(in_socket_ether);
+    }
 
-exit_fail1:
+ exit_fail2:
+    if (in_socket_udp >= 0) {
+        close(in_socket_udp);
+    }
+
+ exit_fail1:
     return EXIT_FAILURE;
 }
 
