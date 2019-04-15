@@ -4,6 +4,8 @@
 	otherwise it fails as /dev/null is not accessible in chroot().
 	Instead, optn /dev/null ourselves and duplicate it to
 	stdin/out/err file descriptors.
+	(syslog_or_print): Print the pid on stderr when g_syslog_opened is
+	false.
 
 2019-04-14  Philippe Troin  <phil@fifi.org>
 

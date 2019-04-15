@@ -137,7 +137,7 @@ void ATTRIBUTE_FORMAT(2, 3) syslog_or_print(int syslog_priority,
     if (g_syslog_opened) {
         syslog(syslog_priority, "%s", buf);
     } else {
-        fprintf(stderr, "%s: %s\n", progname, buf);
+        fprintf(stderr, "%s[%lu]: %s\n", progname, (unsigned long) getpid(), buf);
     }
 }
 
