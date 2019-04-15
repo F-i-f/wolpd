@@ -1025,10 +1025,34 @@ int main(int argc, char *argv[])
     /* Initialize syslog before an eventual chroot, it may be too late
      * to connect to syslog after chroot() */
     if ( ! g_foregnd ) {
+        int dev_null_fd;
+        int fd;
+
         openlog(progname,
                 LOG_CONS|LOG_NDELAY| (g_foregnd ? LOG_PERROR : 0) | LOG_PID,
                 LOG_DAEMON);
         g_syslog_opened = 1;
+
+        if ((dev_null_fd = open("/dev/null", O_RDWR)) == -1) {
+            syslog_or_print(LOG_ERR, "couldn't open /dev/null: %s\n",
+                            strerror(errno));
+            goto exit_fail4;
+        }
+
+        for (fd=0; fd <=1; ++fd) {
+            if (dup2(dev_null_fd, fd) == -1) {
+                syslog_or_print(LOG_ERR, "couldn't dup2 /dev/null to %d: %s\n",
+                                fd, strerror(errno));
+                close(dev_null_fd);
+                goto exit_fail4;
+            }
+        }
+
+        if (close(dev_null_fd) != 0) {
+            syslog_or_print(LOG_ERR, "couldn't close /dev/null: %s\n",
+                    strerror(errno));
+            goto exit_fail4;
+        }
     }
 
     /* Chroot if requested */
@@ -1099,9 +1123,15 @@ int main(int argc, char *argv[])
     }
 
     if (g_foregnd == 0) {
-        if (daemon(0, 0) != 0) {
+        if (daemon(0, 1 /* noclose */) != 0) {
             fprintf(stderr, "%s: couldn't fork a background process: %s\n",
                     progname, strerror(errno));
+            goto exit_fail4;
+        }
+
+        if (dup2(0, 2) == -1) {
+            syslog_or_print(LOG_ERR, "couldn't dup2(0, 2): %s\n",
+                            strerror(errno));
             goto exit_fail4;
         }
     }
