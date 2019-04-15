@@ -1,5 +1,14 @@
 2019-04-15  Philippe Troin  <phil@fifi.org>
 
+	* Makefile.am (man8_MANS): Rename to dist_man8_MANS, we ship the
+	generated manpage so that the tool can be rebuilt even if you're
+	missing help2man.
+	(generated_files): Rename to all_generated_files, split into
+	keep_generated_files and expendable_generated_files.
+	(CLEANFILES): Only clean expendable_generated_files.
+	(MAINTAINERCLEANFILES): Clean keep_generated_files on
+	maintainer-clean.
+
 	* autogen.sh: Remove, it only calls autoreconf.
 
 	* wolpd.c (main): Set noclose to 1 when calling daemon(),

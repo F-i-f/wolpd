@@ -18,21 +18,23 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-sbin_PROGRAMS = wolpd
+sbin_PROGRAMS   = wolpd
 
-wolpd_SOURCES = wolpd.c
+wolpd_SOURCES   = wolpd.c
 
-man8_MANS     = wolpd.8
+dist_man8_MANS  = wolpd.8
 
-EXTRA_DIST    = wolpd.init.in \
-		wolpd.service.in \
-		wolpd.spec \
-		wolpd.sysconfig \
-		wolpd.h2m
+EXTRA_DIST	= wolpd.init.in \
+		  wolpd.service.in \
+		  wolpd.spec \
+		  wolpd.sysconfig \
+		  wolpd.h2m
 
-generated_files = wolpd.8 wolpd.init wolpd.service
+keep_generated_files       = wolpd.8
+expendable_generated_files = wolpd.init wolpd.service
+all_generated_files        = $(keep_generated_files) $(expendable_generated_files)
 
-all-local: $(generated_files)
+all-local: $(all_generated_files)
 
 wolpd.8: $(srcdir)/wolpd.c $(srcdir)/wolpd.h2m
 	-$(HELP2MAN) -i $(srcdir)/wolpd.h2m -o $@ ./wolpd
@@ -110,7 +112,8 @@ uninstall-local-sysconfig:
 	rm -f "$(DESTDIR)$(sysconfdir)/sysconfig/wolpd"
 
 # Clean & misc
-CLEANFILES = $(generated_files)
+CLEANFILES	     = $(expendable_generated_files)
+MAINTAINERCLEANFILES = $(keep_generated_files)
 
 .PHONY: all-local install-local install-local-init install-local-sysconfig
 .PHONY: uninstall-local uninstall-local-init uninstall-local-sysconfig
