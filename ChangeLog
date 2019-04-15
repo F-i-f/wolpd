@@ -1,5 +1,10 @@
 2019-04-15  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.c (version_and_exit, usage_and_exit, get_features): Make
+	the declaration a valid prototype.
+	(get_if_index): Pacify gcc when copying the interface name to a
+	not-necesarily NUL-terminated string.
+
 	* configure.ac: Call FI_COMPILER_WARNINGS.
 
 	* m4/fi_compiler_warnings.m4 (FI_COMPILER_WARNINGS): Create.

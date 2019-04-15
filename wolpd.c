@@ -141,7 +141,7 @@ void ATTRIBUTE_FORMAT(2, 3) syslog_or_print(int syslog_priority,
     }
 }
 
-void version_and_exit()
+void version_and_exit(void)
 {
     printf("\
 %s"
@@ -166,7 +166,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.\n",
     exit(EXIT_SUCCESS);
 }
 
-void usage_and_exit()
+void usage_and_exit(void)
 {
     printf("\
 Usage: %s [OPTION]...\n\n\
@@ -341,7 +341,7 @@ void parse_options(int argc, char *argv[])
     }
 }
 
-const char* get_features()
+const char* get_features(void)
 {
     char buf_ether[32];
     char buf_udp[32];
@@ -642,7 +642,12 @@ int get_if_index(int sock, const char *if_name, const char *if_description)
 {
     struct ifreq ifhw;
     memset(&ifhw, 0, sizeof(ifhw));
+
+    /* The strncpy below is totally fine, quieten gcc */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
     strncpy(ifhw.ifr_name, if_name, sizeof(ifhw.ifr_name));
+#pragma GCC diagnostic pop
 
    if (ioctl(sock, SIOCGIFINDEX, &ifhw) < 0) {
         fprintf(stderr, "%s: couldn't find %s interface %s: %s\n",
