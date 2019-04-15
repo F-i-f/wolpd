@@ -1,5 +1,7 @@
 2019-04-15  Philippe Troin  <phil@fifi.org>
 
+	* (.tito): Remove
+
 	* INSTALL: Remove, autoreconf will put a fresh copy in the repo.
 
 	* Makefile.am (man8_MANS): Rename to dist_man8_MANS, we ship the
