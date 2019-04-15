@@ -1,5 +1,7 @@
 2019-04-15  Philippe Troin  <phil@fifi.org>
 
+	* autogen.sh: Remove, it only calls autoreconf.
+
 	* wolpd.c (main): Set noclose to 1 when calling daemon(),
 	otherwise it fails as /dev/null is not accessible in chroot().
 	Instead, optn /dev/null ourselves and duplicate it to
