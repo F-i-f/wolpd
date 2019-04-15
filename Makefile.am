@@ -24,13 +24,15 @@ wolpd_SOURCES   = wolpd.c
 
 dist_man8_MANS  = wolpd.8
 
-EXTRA_DIST	= wolpd.init.in \
+EXTRA_DIST	= wolpd.8.html \
+		  wolpd.8.pdf \
+		  wolpd.init.in \
 		  wolpd.service.in \
 		  wolpd.spec \
 		  wolpd.sysconfig \
 		  wolpd.h2m
 
-keep_generated_files       = wolpd.8
+keep_generated_files       = wolpd.8 wolpd.8.html wolpd.8.pdf
 expendable_generated_files = wolpd.init wolpd.service
 all_generated_files        = $(keep_generated_files) $(expendable_generated_files)
 

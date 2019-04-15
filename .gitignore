@@ -22,7 +22,6 @@ stamp-h1
 /configure
 
 /wolpd
-/wolpd.8
 /wolpd.init
 /wolpd.service
 /wolpd-*.tar.*

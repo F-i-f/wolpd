@@ -1,5 +1,14 @@
 2019-04-15  Philippe Troin  <phil@fifi.org>
 
+	* .gitignore: Remove wolpd.8, will be checked in the repository.
+
+	* configure.ac: Call FI_FORMAT_MAN to generate PDF and HTML manpages.
+
+	* Makefile.am (EXTRA_DIST, keep_generated_files): Add wolpd.8.html
+	& wolpd.8.pdf.
+
+	* m4/fi_format_man.m4 (FI_FORMAT_MAN): Create.
+
 	* wolpd.c (version_and_exit, usage_and_exit, get_features): Make
 	the declaration a valid prototype.
 	(get_if_index): Pacify gcc when copying the interface name to a
