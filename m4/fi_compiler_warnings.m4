@@ -1,7 +1,6 @@
-#  wolpd - Wake-On-LAN Proxy Daemon
-#  configure.ac
-#  Copyright (C) 2010  Federico Simoncelli <federico.simoncelli@gmail.com>
-#  Copyright (C) 2019  Philippe Troin (F-i-f onj GitHub)
+#  fi-autoconf-macros - A collection of autoconf macros
+#  fi_compiler_warnings
+#  Copyright (C) 2019 Philippe Troin <phil+github-commits@fifi.org>
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -16,24 +15,15 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT([wolpd], [0.5.1], [https://github.com/F-i-f/wolpd/issues])
-AC_CONFIG_AUX_DIR([config.aux])
-FI_PROJECT()
+# Usage:
+#   FI_COMPILER_WARNINGS
+# Effect:
+#   Turns on maximum warning level
 
-# Get started
-AC_CONFIG_SRCDIR([wolpd.c])
-AC_LANG([C])
-
-### 1) Checking for system
-AC_USE_SYSTEM_EXTENSIONS
-
-### 2) Checking for programs
-AC_PROG_CC
-FI_COMPILER_WARNINGS
-AM_MISSING_PROG(HELP2MAN, help2man)
-
-FI_GIT_REVISION
-
-AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile])
-AC_OUTPUT
+AC_DEFUN([FI_COMPILER_WARNINGS],
+	 [if test "x$ac_compiler_gnu" = xyes
+	 then
+	   FI_AUTOMAKE_FRAGMENT([# Added by FI_COMPILER_WARNINGS
+][AM_CFLAGS += -Wstrict-prototypes -Werror -Wall -Wextra
+])
+	 fi])
