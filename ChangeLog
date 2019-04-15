@@ -1,5 +1,20 @@
 2019-04-14  Philippe Troin  <phil@fifi.org>
 
+	* NEWS: Fill in old revision to satisfy automake gnu option.
+
+	* Makefile.am: Add FI_AUTOMAKE substitution.
+
+	* wolpd.c (version_and_exit): Add git revision.
+
+	* m4/fi_project.m4: Imported.
+
+	* m4/fi_git_revision.m4: Imported.
+
+	* m4/fi_automake_fragment.m4: Imported.
+
+	* configure.ac: Call FI_PROJECT, FI_GIT_REVISION.
+	Change bug reporting address to the new Github address.
+
 	* wolpd.h2m: Document new features.
 
 	* wolpd.c (version_and_exit): Add myself as copyright holder.

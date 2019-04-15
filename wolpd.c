@@ -145,6 +145,9 @@ void version_and_exit()
 {
     printf("\
 %s"
+#ifdef GIT_REVISION
+           " (git: %s)"
+#endif
            "\n\n\
 Copyright (C) 2010 Federico Simoncelli\n\
 Copyright (C) 2019 Philippe Troin (F-i-f on GitHub)\n\
@@ -155,6 +158,9 @@ under certain conditions.\n\
 You should have received a copy of the GNU General Public License\n\
 along with this program.  If not, see <http://www.gnu.org/licenses/>.\n",
            PACKAGE_STRING,
+#ifdef GIT_REVISION
+           GIT_REVISION,
+#endif
            PACKAGE);
 
     exit(EXIT_SUCCESS);

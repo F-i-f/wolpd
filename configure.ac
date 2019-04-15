@@ -16,18 +16,23 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_PREREQ([2.63])
-AC_INIT([wolpd], [0.5.1], [federico.simoncelli@gmail.com])
+AC_INIT([wolpd], [0.5.1], [https://github.com/F-i-f/wolpd/issues])
 AC_CONFIG_AUX_DIR([config.aux])
-AM_INIT_AUTOMAKE()
-AC_CONFIG_SRCDIR([wolpd.c])
-AC_CONFIG_HEADERS([config.h])
+FI_PROJECT()
 
+# Get started
+AC_CONFIG_SRCDIR([wolpd.c])
+AC_LANG([C])
+
+### 1) Checking for system
 AC_USE_SYSTEM_EXTENSIONS
+
+### 2) Checking for programs
+AC_PROG_CC
 AM_MISSING_PROG(HELP2MAN, help2man)
 
-# Checks for programs.
-AC_PROG_CC
+FI_GIT_REVISION
 
+AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

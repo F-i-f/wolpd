@@ -114,3 +114,5 @@ CLEANFILES = $(generated_files)
 
 .PHONY: all-local install-local install-local-init install-local-sysconfig
 .PHONY: uninstall-local uninstall-local-init uninstall-local-sysconfig
+
+@FI_AUTOMAKE@
