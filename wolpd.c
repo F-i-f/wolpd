@@ -33,6 +33,7 @@
 #include <netpacket/packet.h>
 #include <pwd.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,8 +48,10 @@
 
 #if __GNUC__
 # define ATTRIBUTE_UNUSED __attribute__((unused))
+# define ATTRIBUTE_FORMAT(a,b) __attribute__((format(printf, a, b)))
 #else /* ! __GNUC__ */
 # define ATTRIBUTE_UNUSED /**/
+# define ATTRIBUTE_FORMAT /**/
 #endif /* ! __GNUC__ */
 
 #define SOCK_DESCR_IN_ETHER "raw Ethernet input"
@@ -80,8 +83,9 @@ const uint8_t wol_magic[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
 const int handled_signals[] = { SIGINT, SIGQUIT, SIGTERM, SIGHUP, 0 };
 
-const char *progname;
-volatile int g_interrupt_signum;
+const char   *progname;
+volatile int  g_interrupt_signum;
+int           g_syslog_opened = 0;
 
 /* Options */
 
@@ -117,6 +121,24 @@ int g_promiscuous = 0;
 /*
  * Help, usage.
  */
+
+void ATTRIBUTE_FORMAT(2, 3) syslog_or_print(int syslog_priority,
+                                            const char* format,
+                                            ...)
+{
+    va_list va;
+    char buf[256];
+
+    va_start(va, format);
+    vsnprintf(buf, sizeof(buf), format, va);
+    va_end(va);
+
+    if (g_syslog_opened) {
+        syslog(syslog_priority, "%s", buf);
+    } else {
+        fprintf(stderr, "%s: %s\n", progname, buf);
+    }
+}
 
 void version_and_exit()
 {
@@ -586,13 +608,14 @@ ssize_t read_packet(int sock, const char* sock_descr, void *buf, size_t buf_size
             case EINTR:
                 continue; /* the while() loop */
             default:
-                syslog(LOG_ERR, "couldn't receive data from %s socket: %m", sock_descr);
+                syslog_or_print(LOG_ERR, "couldn't receive data from %s socket: %s",
+                                sock_descr, strerror(errno));
                 return -1;
             }
         }
 
         if (recv_len == 0) {
-            syslog(LOG_ERR, "end of file on %s socket", sock_descr);
+            syslog_or_print(LOG_ERR, "end of file on %s socket", sock_descr);
             return -1;
         }
 
@@ -757,17 +780,18 @@ int forward_packets(int in_sock, const
         }
 
         if ((size_t)wol_len < min_packet_size) {
-            syslog(LOG_ERR, "short packet (%lu < %lu) on %s socket",
-                   (unsigned long)wol_len, (unsigned long)min_packet_size, in_sock_descr);
+            syslog_or_print(LOG_ERR, "short packet (%lu < %lu) on %s socket",
+                            (unsigned long)wol_len, (unsigned long)min_packet_size,
+                            in_sock_descr);
             continue;
         }
 
         if (ntohs(wol_msg.head.h_proto) != ethertype) {
-            syslog(LOG_WARNING, "dropped %s packet with Ethernet protocol 0x%04x from %02x:%02x:%02x:%02x:%02x:%02x",
-                   in_sock_descr,
-                   ntohs(wol_msg.head.h_proto),
-                   wol_msg.head.h_source[0], wol_msg.head.h_source[1], wol_msg.head.h_source[2],
-                   wol_msg.head.h_source[3], wol_msg.head.h_source[4], wol_msg.head.h_source[5]);
+            syslog_or_print(LOG_WARNING, "dropped %s packet with Ethernet protocol 0x%04x from %02x:%02x:%02x:%02x:%02x:%02x",
+                            in_sock_descr,
+                            ntohs(wol_msg.head.h_proto),
+                            wol_msg.head.h_source[0], wol_msg.head.h_source[1], wol_msg.head.h_source[2],
+                            wol_msg.head.h_source[3], wol_msg.head.h_source[4], wol_msg.head.h_source[5]);
             continue;
         }
 
@@ -777,8 +801,8 @@ int forward_packets(int in_sock, const
         }
 
         if (memcmp(validation_results.payload, wol_magic, ETH_ALEN) != 0) {
-            syslog(LOG_NOTICE, "dropped %s non-WOL (missing initial 6 x 0xff) packet from %s",
-                   in_sock_descr, validation_results.saddr_descr);
+            syslog_or_print(LOG_NOTICE, "dropped %s non-WOL (missing initial 6 x 0xff) packet from %s",
+                            in_sock_descr, validation_results.saddr_descr);
             continue;
         }
 
@@ -787,8 +811,8 @@ int forward_packets(int in_sock, const
             if (memcmp(validation_results.payload + ETH_ALEN,
                        validation_results.payload + ETH_ALEN * (i+1),
                        ETH_ALEN)) {
-                syslog(LOG_NOTICE, "dropped %s non-WOL (mismatch WOP copy #%d) packet from %s",
-                       in_sock_descr, i, validation_results.saddr_descr);
+                syslog_or_print(LOG_NOTICE, "dropped %s non-WOL (mismatch WOP copy #%d) packet from %s",
+                                in_sock_descr, i, validation_results.saddr_descr);
                 mismatch=1;
                 break;
             }
@@ -803,24 +827,24 @@ int forward_packets(int in_sock, const
             case EINTR:
                 goto send_again;
             default:
-                syslog(LOG_ERR, "cannot forward %s WOL packet from %s: %m",
-                       in_sock_descr, validation_results.saddr_descr);
+                syslog_or_print(LOG_ERR, "cannot forward %s WOL packet from %s: %s",
+                                in_sock_descr, validation_results.saddr_descr,
+                                strerror(errno));
                 continue; /* the while(1) loop */
             }
         }
 
-        syslog(LOG_NOTICE, "magic %s packet from %s forwarded to "
-               "%02x:%02x:%02x:%02x:%02x:%02x",
-               in_sock_descr, validation_results.saddr_descr,
-               wol_msg.head.h_dest[0], wol_msg.head.h_dest[1],
-               wol_msg.head.h_dest[2], wol_msg.head.h_dest[3],
-               wol_msg.head.h_dest[4], wol_msg.head.h_dest[5]
-               );
+        syslog_or_print(LOG_NOTICE, "magic %s packet from %s forwarded to "
+                        "%02x:%02x:%02x:%02x:%02x:%02x",
+                        in_sock_descr, validation_results.saddr_descr,
+                        wol_msg.head.h_dest[0], wol_msg.head.h_dest[1],
+                        wol_msg.head.h_dest[2], wol_msg.head.h_dest[3],
+                        wol_msg.head.h_dest[4], wol_msg.head.h_dest[5]);
 
         if (wol_len != sent_len) {
-            syslog(LOG_WARNING, "short write: %u/%u bytes sent when forwarding %s packet from %s",
-                   (unsigned)sent_len, (unsigned)wol_len,
-                   in_sock_descr, validation_results.saddr_descr);
+            syslog_or_print(LOG_WARNING, "short write: %u/%u bytes sent when forwarding %s packet from %s",
+                            (unsigned)sent_len, (unsigned)wol_len,
+                            in_sock_descr, validation_results.saddr_descr);
             continue;
         }
     }
@@ -862,11 +886,11 @@ int validate_udp_packet(struct validate_results *results,
     udp_head = (struct udphdr*) ((char*)frame->data + (ip_head->ihl << 2));
 
     if (ip_head->version != IPVERSION) {
-        syslog(LOG_WARNING, "dropped %s packet with IP version %d from %02X:%02X:%02X:%02X:%02X:%02X",
-               sock_descr,
-               ip_head->version,
-               frame->head.h_source[0], frame->head.h_source[1], frame->head.h_source[2],
-               frame->head.h_source[3], frame->head.h_source[4], frame->head.h_source[5]);
+        syslog_or_print(LOG_WARNING, "dropped %s packet with IP version %d from %02X:%02X:%02X:%02X:%02X:%02X",
+                        sock_descr,
+                        ip_head->version,
+                        frame->head.h_source[0], frame->head.h_source[1], frame->head.h_source[2],
+                        frame->head.h_source[3], frame->head.h_source[4], frame->head.h_source[5]);
         return 0;
     }
 
@@ -882,20 +906,20 @@ int validate_udp_packet(struct validate_results *results,
     }
 
     if (ip_head->protocol != IPPROTO_UDP) {
-        syslog(LOG_WARNING, "dropped %s packet with IP protocol %d from %s",
-               sock_descr, ip_head->protocol, results->saddr_descr);
+        syslog_or_print(LOG_WARNING, "dropped %s packet with IP protocol %d from %s",
+                        sock_descr, ip_head->protocol, results->saddr_descr);
         return 0;
     }
 
     if (g_udp_port != UDP_PORT_LISTEN_ALL && ntohs(udp_head->uh_dport) != g_udp_port) {
-        syslog(LOG_WARNING, "dropped %s wrong UDP port %d packet from %s",
-               sock_descr, ntohs(udp_head->uh_dport), results->saddr_descr);
+        syslog_or_print(LOG_WARNING, "dropped %s wrong UDP port %d packet from %s",
+                        sock_descr, ntohs(udp_head->uh_dport), results->saddr_descr);
         return 0;
     }
 
     if (ntohs(udp_head->uh_ulen) < WOL_MIN_UDP_SIZE) {
-        syslog(LOG_WARNING, "dropped %s packet with wrong size %d-byte packet from %s",
-               sock_descr, ntohs(udp_head->uh_ulen), results->saddr_descr);
+        syslog_or_print(LOG_WARNING, "dropped %s packet with wrong size %d-byte packet from %s",
+                        sock_descr, ntohs(udp_head->uh_ulen), results->saddr_descr);
         return 0;
     }
 
@@ -990,9 +1014,12 @@ int main(int argc, char *argv[])
 
     /* Initialize syslog before an eventual chroot, it may be too late
      * to connect to syslog after chroot() */
-    openlog(progname,
-            LOG_CONS|LOG_NDELAY| (g_foregnd ? LOG_PERROR : 0) | LOG_PID,
-            LOG_DAEMON);
+    if ( ! g_foregnd ) {
+        openlog(progname,
+                LOG_CONS|LOG_NDELAY| (g_foregnd ? LOG_PERROR : 0) | LOG_PID,
+                LOG_DAEMON);
+        g_syslog_opened = 1;
+    }
 
     /* Chroot if requested */
     if (g_chroot != NULL) {
@@ -1069,8 +1096,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    syslog(LOG_NOTICE, "started, %s",
-           get_features());
+    syslog_or_print(LOG_NOTICE, "started, %s",
+                    get_features());
 
     g_interrupt_signum = 0;
     while (! g_interrupt_signum)
@@ -1082,11 +1109,12 @@ int main(int argc, char *argv[])
             case EINTR:
                 continue; /* the while() loop */
             default:
-                syslog(LOG_ERR, "select(): %m");
+                syslog_or_print(LOG_ERR, "select(): %s",
+                                strerror(errno));
                 goto exit_fail5;
             }
         } else if (select_ret == 0) {
-            syslog(LOG_ERR, "select() returned zero file descriptors");
+            syslog_or_print(LOG_ERR, "select() returned zero file descriptors");
             goto exit_fail5;
         }
 
@@ -1103,13 +1131,11 @@ int main(int argc, char *argv[])
         }
     }
 
-    syslog(LOG_NOTICE, "exiting on signal %d", g_interrupt_signum);
+    syslog_or_print(LOG_NOTICE, "exiting on signal %d", g_interrupt_signum);
     goto exit_fail4;
 
  exit_fail5:
-    if (! g_foregnd) {
-        syslog(LOG_ERR, "exiting on failure");
-    }
+    syslog_or_print(LOG_ERR, "exiting on failure");
 
  exit_fail4:
     close(out_socket);

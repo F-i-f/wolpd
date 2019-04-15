@@ -13,6 +13,10 @@
 	(setup_input_socket): Flush the input sockets after creating them,
 	but before the main loop runs, to discard unfiltered packets.
 	(forward_packets): An error in sendto() is not fatal.
+	(ATTRIBUTE_FORMAT, g_syslog_opened, syslog_or_print): Create.
+	(read_packet, forward_packets, validate_udp_packet, main): Use
+	syslog_or_print instead of syslog.
+	(main): Only initialize syslog if g_foregnd is not set.
 
 2019-04-13  Philippe Troin  <phil@fifi.org>
 
