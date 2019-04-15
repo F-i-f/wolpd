@@ -1,5 +1,6 @@
 /* wolpd - Wake-On-LAN Proxy Daemon
  * Copyright (C) 2010  Federico Simoncelli <federico.simoncelli@gmail.com>
+ * Copyright (C) 2019  Philippe Troin (F-i-f onj GitHub)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -143,14 +144,18 @@ void ATTRIBUTE_FORMAT(2, 3) syslog_or_print(int syslog_priority,
 void version_and_exit()
 {
     printf("\
-%s\n\n\
+%s"
+           "\n\n\
 Copyright (C) 2010 Federico Simoncelli\n\
-License GPLv3+: \
-GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n\
-This is free software: you are free to change and redistribute it.\n\
-There is NO WARRANTY, to the extent permitted by law.\n\n\
-Written by Federico Simoncelli.\n",
-        PACKAGE_STRING);
+Copyright (C) 2019 Philippe Troin (F-i-f on GitHub)\n\
+\n\
+%s comes with ABSOLUTELY NO WARRANTY.\n\
+This is free software, and you are welcome to redistribute it\n\
+under certain conditions.\n\
+You should have received a copy of the GNU General Public License\n\
+along with this program.  If not, see <http://www.gnu.org/licenses/>.\n",
+           PACKAGE_STRING,
+           PACKAGE);
 
     exit(EXIT_SUCCESS);
 }
@@ -158,7 +163,6 @@ Written by Federico Simoncelli.\n",
 void usage_and_exit()
 {
     printf("\
-%s is a Wake-On-Lan proxy daemon.\n\n\
 Usage: %s [OPTION]...\n\n\
 Options:\n\
   -C, --chroot=DIRECTORY        chroot(2) to DIRECTORY.\n\
@@ -181,7 +185,7 @@ Options:\n\
   -U, --no-udp                  Do not listen for WOL packets on UDP. (default)\n\
   -v, --version                 Print version number, then exit.\n\n\
 Report bugs to <%s>.\n",
-           PACKAGE_NAME, PACKAGE_NAME,
+           progname,
            ETH_P_WOL, PACKAGE_BUGREPORT);
     exit(EXIT_SUCCESS);
 }

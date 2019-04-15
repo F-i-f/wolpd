@@ -1,23 +1,41 @@
-EXTRA_DIST = \
-	wolpd.init.in \
-	wolpd.service.in \
-	wolpd.spec \
-	wolpd.sysconfig \
-	wolpd.h2m
+#  wolpd - Wake-On-LAN Proxy Daemon
+#  Makefile.am
+#  Copyright (C) 2010  Federico Simoncelli <federico.simoncelli@gmail.com>
+#  Copyright (C) 2019  Philippe Troin (F-i-f onj GitHub)
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ACLOCAL_AMFLAGS = -I m4
 
 sbin_PROGRAMS = wolpd
+
 wolpd_SOURCES = wolpd.c
 
 man8_MANS     = wolpd.8
+
+EXTRA_DIST    = wolpd.init.in \
+		wolpd.service.in \
+		wolpd.spec \
+		wolpd.sysconfig \
+		wolpd.h2m
 
 generated_files = wolpd.8 wolpd.init wolpd.service
 
 all-local: $(generated_files)
 
 wolpd.8: $(srcdir)/wolpd.c $(srcdir)/wolpd.h2m
-	-$(HELP2MAN) -s 8 -N -i $(srcdir)/wolpd.h2m -o $@ ./wolpd
+	-$(HELP2MAN) -i $(srcdir)/wolpd.h2m -o $@ ./wolpd
 
 wolpd.init wolpd.service: Makefile
 	sed -e 's![@]sbindir@!$(sbindir)!g' \

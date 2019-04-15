@@ -1,14 +1,259 @@
+#  -*- mode: nroff; indent-tabs-mode: nil -*-
+#  wolpd - Wake-On-LAN Proxy Daemon
+#  wolpd.h2m
+#  Copyright (C) 2010  Federico Simoncelli <federico.simoncelli@gmail.com>
+#  Copyright (C) 2019  Philippe Troin (F-i-f on GitHub)
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+--section 8
+--no-info
+
 [NAME]
-wolpd \- Wake-On-Lan proxy daemon
+wolpd \- Wake-On-LAN proxy daemon
 
 [DESCRIPTION]
-Wake-on-LAN is an Ethernet computer networking standard that allows a computer
-to be turned on or woken up by a network message. The message is usually sent
-by a simple program executed on another computer on the local area network.
-In order to use Wake-on-LAN over the Internet the appropriate message (magic
-packet) needs to be forwarded from the WAN side to the LAN side of the gateway.
-Wolpd is a Wake-on-LAN proxy daemon designed to analyze, log and eventually
-forward the received magic packets to the LAN hosts.
+Wake-on-LAN (WOL) is an Ethernet computer networking standard that
+allows a computer to be turned on or woken up by a network
+message. The message is usually sent by a simple program executed on
+another computer on the local area network.
+
+WOL packets are not forwarded by routers, which is where
+.B wolpd
+comes into play, by proxying WOL packets from one network to an other.
+
+WOL packets can be send either over UDP transport or in a raw Ethernet frame.
+.B wolpd
+can listen to one or both kinds on an
+.I input interface
+and forward them to an
+.I output interface
+which must be specified respectively with
+.B --input-interface
+and
+.B --output-interface
+options.
+
+By default,
+.B wolpd
+only listens for Ethernet frames with Ethertype
+.I 0x0842
+which is the standard Ethertype for raw WOL packets.  The Ethertype
+can be changed with the
+.B --ethertype
+option.  Listening for raw Ethernet frames can also be disabled with
+the
+.B --no-ether
+option.
+
+.B wolpd
+can also listen for UDP-encapsulated WOL packets if the
+.B --udp
+or
+.B --port
+options are used.  Just using
+.B --udp
+will turn on listening to UDP packets on
+.BI any
+UDP port.  Using the
+.B --port
+option (with or without the
+.B --udp
+option) will turn on UDP listening only on the given UDP port.
+
+[PROMISCUOUS MODE]
+The
+.B --promiscuous
+option sets the input interface specified with
+.B --input-interface
+in promiscuous mode.  This is only necessary:
+.RS 4
+.PP
+- when listening for raw Ethernet WOL frames, if the unicast WOL
+  packets are used.
+.PP
+- when listening for UDP WOL packets, if the machine running
+.B wolpd
+is not the default router on the network.
+.RE
+
+If the WOL packets don't get forwarded by \fBwolpd\fR, you may want to
+try the
+.B --promiscuous
+option.
+
+[SECURITY]
+For best security, run wolpd with both
+.B --chroot
+and
+.B --setuid
+options.
+.br
+Create an empty directory (eg. /var/empty/wolpd), owned by root.
+.br
+Create a dedicated wolpd user and group.
+.br
+Then run wolpd with:
+.PP
+.RS 2
+wolpd \fB--chroot\fR /var/empty/wolpd \fB--setuid\fR wolpd \fI[other-options]\fR
+.RE
+.PP
+.B wolpd
+logs every packet it forwards to
+.BR syslog(3)
+and the messages look like:
+.PP
+.RS 2
+wolpd[\fIpid\fR]: magic raw Ethernet packet from
+\fIXX:XX:XX:XX:XX:XX\fR forwarded to \fIXX:XX:XX:XX:XX:XX\fR
+.PP
+wolpd[\fIpid\fR]: magic UDP packet from \fIdd.dd.dd.dd\fR (UDP dport
+\fIport\fR) forwarded to \fIXX:XX:XX:XX:XX:XX\fR
+.PP
+wolpd[\fIpid\fR]: magic UDP packet from \fIdd.dd.dd.dd\fR forwarded to
+\fIXX:XX:XX:XX:XX:XX\fR
+.PP
+.RE
+Errors are also logged to
+.BR syslog(3)
+(or to standard error instead if running in the
+.B --foreground
+).
+
+[PERFORMANCE]
+.B wolpd
+uses socket filters (BPF) on its input raw socket(s) to inspect the
+frames and validates the full WOL payload.  Only valid WOL frames
+are returned to user-space, and the invalid ones are discarded in the
+kernel.
+.PP
+Note that however using the
+.B --promiscuous
+option may negatively affect networking performance.
+
+[EXAMPLES]
+Assuming the following network:
+.PP
+.CDS
+.ft CW
+.Bd -unfilled
+            enp1 +---------+ enp2
+   -----+--------+ router1 +----+----------+------
+        |        +---------+    |          |
+        |                       |          |
+    +---+---+               +---+---+  +---+---+
+    | host1 |               | host2 |  | host3 |
+    +-------+               +-------+  +-------+
+                                       54:0:0:0:0:1
+.Be
+.ft R
+.CDE
+.PP
+You do not need
+.B wolpd
+to send WOL packets from host2 to host3 since they are on the same
+network.  But
+.B wolpd
+is needed if you want to sent WOL packets from host1 to host3:
+.RS 2
+.PP
+\fBwolpd --input-interface\fR enp1 \fB--output-interface\fR enp2
+.RS 2
+.PP
+will forward broadcast raw Ethernet WOL frames with the standard WOL
+Ethertype of
+.I 0x0842
+from enp1 to enp2.  You can then WOL host3 from host1 by running on
+host1:
+.br
+.RS 2
+.B  ether-wake -b
+54:0:0:0:0:1
+.br
+.RS -2
+Note that
+.B -b
+is required when invoking ether-wake since
+.B wolpd
+is not running in promiscuous mode.
+.RS -2
+.PP
+\fBwolpd --input-interface\fR enp1 \fB--output-interface\fR enp2 \
+\fB--promiscuous\fR
+.RS 2
+.PP
+will forward any raw Ethernet WOL frames with the standard WOL
+Ethertype of
+.I 0x0842
+from enp1 to enp2.  You can then WOL host3 from host1 by running on
+host1:
+.br
+.RS 2
+.B ether-wake
+54:0:0:0:0:1
+.RS -2
+.RS -2
+.PP
+\fBwolpd --input-interface\fR enp1 \fB--output-interface\fR enp2 \
+\fB--ethertype\fR \fI0x8088\fR
+.RS 2
+.PP
+will forward any Ethernet WOL frames with the custom Ethertype of
+.I 0x8088
+from enp1 to enp2.
+.RS -2
+.PP
+\fBwolpd --input-interface\fR enp1 \fB--output-interface\fR enp2 \
+\fB--no-ether\fR \fB--udp\fR
+.RS 2
+.PP
+will forward any WOL UDP packet on
+.I any
+UDP port from enp1 to enp2.
+.RS -2
+.PP
+\fBwolpd --input-interface\fR enp1 \fB--output-interface\fR enp2 \
+\fB--no-ether\fR \fB--port\fR \fI9\fR
+.RS 2
+.PP
+will forward any WOL UDP packet on port
+.I 9
+from enp1 to enp2.
+.RS -2
+.PP
+\fBwolpd --input-interface\fR enp1 \fB--output-interface\fR enp2 \
+\fB--port\fR \fI9\fR
+.RS 2
+.PP
+will forward both broadcast raw Ethernet WOL frames with the standard WOL
+Ethertype of
+.I 0x0842
+and WOL UDP packets on port
+.I 9
+from enp1 to enp2.
+.RE
 
 [SEE ALSO]
-ether-wake(8)
+.BR ether-wake(8)
+
+/NOT-LIKELY-TO-BE-FOUND-RANDOM-STRING/
+This will prevent this text and the LocalWords lines below inserted by emacs from
+appearing in the nroff output.
+
+\"  LocalWords:  nroff wolpd WOL proxying UDP ethertype 0x0842 udp eg
+\"  LocalWords:  unicast chroot setuid br fB fR fI fBwolpd 0x0842 TP
+\"  LocalWords:  enp1 enp2 router1 host1 host2 host3 fI0x8088 0x8088
+\"  LocalWords:  fI9 h2m Simoncelli Troin MERCHANTABILITY 0x0842 BPF
+\"  LocalWords:  syslog fIpid dport fIport

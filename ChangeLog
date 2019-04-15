@@ -1,5 +1,14 @@
 2019-04-14  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.h2m: Document new features.
+
+	* wolpd.c (version_and_exit): Add myself as copyright holder.
+	Change copyright statement wording.
+	(usage_and_exit): Tweak output for better help2man.
+
+	* Makefile.am: Add copyright header.
+	(wolpd.8): Move some help2man to wolpd.h2m.
+
 	* wolpd.c (get_features): Also report if the packet capture is
 	running promiscuously.
 	(SOCK_DESCR_IN_ETHER, SOCK_DESCR_IN_UDP, SOCK_DESCR_OUT): Add.
