@@ -1,5 +1,9 @@
 2019-04-15  Philippe Troin  <phil@fifi.org>
 
+	* Makefile.am (install-data-local-init, uninstall-local-init): Fix
+	missing install/uninstall of systemd service file and init scripts
+	when DESTDIR is used.
+
 	* .gitignore: Remove wolpd.8, will be checked in the repository.
 
 	* configure.ac: Call FI_FORMAT_MAN to generate PDF and HTML manpages.

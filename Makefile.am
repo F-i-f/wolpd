@@ -58,22 +58,27 @@ install-data-local-init: wolpd.service wolpd.init
 		       | grep '^UnitPath=' \
 		       | sed -e 's!^UnitPath=!!' \
 			     -e 's! !\n!g' \
-		       | egrep -v '/(etc($|/)|run/)')"; \
-	  if [ -d "$$unitpath" -a -w "$$unitpath" ]; \
+		       | egrep -v '/(etc($$|/)|run/)')"; \
+	  $(MKDIR_P) "$(DESTDIR)$$unitpath"; \
+	  if [ -d "$$unitpath" ]; \
 	  then \
-	    ( set -x; \
-	      $(INSTALL) -d "$(DESTDIR)$$unitpath" \
-	      && $(INSTALL_DATA) wolpd.service "$(DESTDIR)$$unitpath/wolpd.service" ); \
+	    (set -x; $(MKDIR_P) "$(DESTDIR)$$unitpath"); \
+	    if [ -w "$(DESTDIR)$$unitpath" ]; \
+	    then \
+	      ( set -x; $(INSTALL_DATA) wolpd.service "$(DESTDIR)$$unitpath/wolpd.service" ); \
+	    fi; \
 	  fi; \
 	else \
 	  for d in /etc/init.d/rc.d /etc/init.d; \
 	  do \
-	    if [ -d "$$d" -a -w "$$d" ]; \
+	    if [ -d "$$d" ]; \
 	    then \
-	      (set -x; \
-		$(INSTALL) -d "$(DESTDIR)$$d" \
-		&& $(INSTALL) wolpd.init "$(DESTDIR)$$d/wolpd.init" ); \
-	      exit $$?; \
+	      (set -x; $(MKDIR_P) "$(DESTDIR)$$d"); \
+	      if [ -w "$(DESTDIR)$$d" ]; \
+	      then \
+		(set -x; $(INSTALL) wolpd.init "$(DESTDIR)$$d/wolpd.init" ); \
+		exit $$?; \
+	      fi; \
 	    fi; \
 	  done; \
 	fi
@@ -92,8 +97,8 @@ uninstall-local-init:
 		       | grep '^UnitPath=' \
 		       | sed -e 's!^UnitPath=!!' \
 			     -e 's! !\n!g' \
-		       | egrep -v '/(etc($|/)|run/)')"; \
-	  if [ -d "$$unitpath" -a -w "$$unitpath" ]; \
+		       | egrep -v '/(etc($$|/)|run/)')"; \
+	  if [ -d "$$unitpath" -a -w "$(DESTDIR)$$unitpath" ]; \
 	  then \
 	    ( set -x; \
 	      rm -f "$(DESTDIR)$$unitpath/wolpd.service" ); \
@@ -101,7 +106,7 @@ uninstall-local-init:
 	else \
 	  for d in /etc/init.d/rc.d /etc/init.d; \
 	  do \
-	    if [ -d "$$d" -a -w "$$d" ]; \
+	    if [ -d "$$d" -a -w "$(DESTDIR)$$d" ]; \
 	    then \
 	      (set -x; \
 		rm -f "$(DESTDIR)$$d/wolpd.init" ); \
