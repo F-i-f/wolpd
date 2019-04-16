@@ -1,32 +1,184 @@
-# General Instructions
-Copyright (C) 2010 Federico Simoncelli <federico.simoncelli@gmail.com>
+Wolpd
+=====
+A Wake-On-LAN Proxy Daemon for Linux
+====================================
 
-This file is free documentation; you have unlimited permission to copy,
-distribute and modify it.
+## Features
 
-# Wake-on-LAN Proxy Daemon
+* Proxies WOL packets from one interface to an other.
 
-Wake-on-LAN is an Ethernet computer networking standard that allows a computer
-to be turned on or woken up by a network message. The message is usually sent
-by a simple program executed on another computer on the local area network.
-In order to use Wake-on-LAN over the Internet the appropriate message (magic
-packet) needs to be forwarded from the WAN side to the LAN side of the gateway.
-Wolpd is a Wake-on-LAN proxy daemon designed to analyze, log and eventually
-forward the received magic packets to the LAN hosts.
+* Proxies either or both raw Ethernet WOL frames as well as UDP WOL
+  packets.
 
-# Build Instructions
+* The raw Ethernet Ethertype to listen for can be configured.
 
-Building and installing from the repository (requires autoreconf):
+* Can listen on all UDP ports or a single UDP port for WOL packets.
 
-    $ ./autogen.sh
-    $ ./configure
-    $ make
-    # make install
+* Secure: can be configured to run as a dedicated unprivileged user in
+  chroot (root is still required at initialization to open the raw
+  socket(s)).
 
-Creating the tarball package:
+* Efficient: uses socket filters so that all the filtering is done by
+  the kernel.  User-space sees only valid WOL frames or packets.
 
-  $ make dist-gzip
+* No third-party dependencies: Uses only libc.
 
-# Debugging Tips
+## Configuration & Set-Up
 
-    # tcpdump -i <interface> ether proto 0x0842
+**wolpd** does not have any configurations files.  It can be run
+directly from the command line.
+
+When using the default installation, if an init system (whether
+_systemd_ or traditional _SysV init_ systems) is detected, **wolpd** will
+install the appropriate _systemd_ service file or the _SysV init_ script.
+
+The options used by **wolpd** when started by either _systemd_ or
+_SysV init_ can then be configured by changing the `WOLPD_OPTIONS`
+line in `/etc/sysconfig/wolpd` or `/usr/local/etc/sysconfig/wolpd`
+(the actual location may vary depending on your build prefix).
+
+Before **wolpd** can run successfully by your init system, the
+`.../etc/sysconfig/wolpd` file *must be edited* to fill in the input
+and output interfaces.
+
+If you use _systemd_, **wolpd** can be started or stopped with:
+
+* For one-time operation (won't restart after a reboot):
+``` shell
+systemctl start wolpd.service
+systemctl stop wolpd.service
+```
+
+* For persistent operation (start now and automatically at boot):
+
+``` shell
+systemctl enable --now wolpd.service
+systemctl disable --now wolpd.service
+```
+
+If you use a traditional _SysV init_, please refer to your
+distribution's documentation.
+
+**wolpd** comes with an [extensive manual
+page](https://htmlpreview.github.io/?https://raw.githubusercontent.com/F-i-f/wolpd/master/wolpd.8.html).
+
+[View](https://htmlpreview.github.io/?https://raw.githubusercontent.com/F-i-f/wolpd/master/wolpd.8.html) or
+download the manual page as:
+[[HTML]](https://raw.githubusercontent.com/F-i-f/wolpd/master/wolpd.8.html),
+[[PDF]](https://raw.githubusercontent.com/F-i-f/wolpd/master/wolpd.8.pdf) or
+[[NROFF]](https://raw.githubusercontent.com/F-i-f/wolpd/master/wolpd.8).
+
+## Future directions
+
+* While currently **wolpd** requires a pair of input and output
+  interface as arguments, we should be able to forwards a WOL frame
+  arriving on _any_ interface to _all_ the other interfaces.
+
+* **wolpd** could also rewrite UDP WOL packets to raw Ethernet WOL
+  frames and/or the converse.
+
+## Building from source
+
+### Requirements
+
+* C Compiler (eg. gcc)
+
+* Make (eg. GNU make)
+
+* help2man (optional, used to generate the manual page)
+
+* autotools (autoconf, automake) is only required if building from the
+  repository.
+
+* The provided init scripts and systemd service files assume that a
+  user with no privileges named _wolpd_ is present on the system.  You
+  can create it with:
+  ```shell
+  useradd -r -d /var/empty/wolpd -c 'Wake-on-LAN Proxy Daemon' wolpd
+  ```
+  However this is not required, and you can modify the init script
+  and/or systemd service file to run **wolpd** as another user.
+
+### From a release
+
+Download the [latest release from
+GitHub](https://github.com/F-i-f/wolpd/releases/download/v1.0/wolpd-1.0.tar.gz):
+
+Download:
+
+* Source:
+  [https://github.com/F-i-f/wolpd/releases/download/v1.0/wolpd-1.0.tar.gz](https://github.com/F-i-f/wolpd/releases/download/v1.0/wolpd-1.0.tar.gz)
+
+* Signature:
+  [https://github.com/F-i-f/wolpd/releases/download/v1.0/wolpd-1.0.tar.gz.asc](https://github.com/F-i-f/wolpd/releases/download/v1.0/wolpd-1.0.tar.gz.asc)
+
+The source code release are signed with the GPG key ID `0x88D51582`,
+available on your [nearest GPG server](https://pgp.mit.edu/).
+
+You can also find all releases on the [GitHub release
+page](https://github.com/F-i-f/wolpd/releases/).  Be careful to
+download the source code from the link named with the full file name
+(_wolpd-1.0.tar.gz_), and **not** from the links marked _Source code
+(zip)_ or _Source code (tar.gz)_ as these are repository snapshots
+generated automatically by GitHub and require specialized tools to
+build (see [Building from GitHub](#from-the-github-repository)).
+
+After downloading the sources, unpack and build with:
+``` shell
+tar xvzf wolpd-1.0.tar.gz
+cd wolpd-1.0
+./configure
+make
+make install
+```
+
+### From the GitHub repository
+
+Clone the [repository](https://github.com/F-i-f/wolpd.git):
+
+``` shell
+git clone https://github.com/F-i-f/wolpd.git
+cd wolpd
+autoreconf -i
+./configure
+make
+make install
+```
+
+## Changelog
+
+### Version 1.0
+#### April 16, 2019
+
+* First release under new management.
+
+## This is a fork
+
+This project is a fork of [wolpd](https://github.com/simon3z/wolpd)
+from Federico Simoncelli <federico.simoncelli@gmail.com>.
+
+It has been almost entirely rewritten at this point, and all the blame
+should go to the current maintainer (F-i-f).
+
+Please note that since [the original
+repository](https://github.com/simon3z/wolpd) was created by a very
+old version of git, it does not run `git fsck` successfully.  This
+repository contains the same history as the original, but it has been
+exported and re-imported so that `git fsck` does not complain.  The
+last imported commit from [the original
+repository](https://github.com/simon3z/wolpd) is
+`6b1c5b63633a2ea66e2ca12d82412af83164f746`, and corresponds to
+`07d947c1b7f3fd0db0d5ed4d1d3de8d8665668e4` in this repository.
+
+## Credits
+
+**wolpd** was originally written by Federico Simoncelli <federico.simoncelli@gmail.com>.
+
+It has now almost been completely rewritten by Philippe Troin (F-i-f on GitHub).
+
+<!--  LocalWords:  WOL UDP Ethertype chroot libc wolpd init eg untar
+ -->
+<!--  LocalWords:  systemd NROFF gcc help2man autotools autoconf GPG
+ -->
+<!--  LocalWords:  automake Changelog Simoncelli Troin gz github SysV
+ -->

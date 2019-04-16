@@ -1,12 +1,12 @@
-Name:           wolpd
-Version:        0.5.2
-Release:        1%{?dist}
-Summary:        Wake-On-Lan proxy daemon
+Name:		wolpd
+Version:	1.0
+Release:	1%{?dist}
+Summary:	Wake-On-Lan Proxy Daemon
 
 Group:          System Environment/Daemons
-License:        GPLv3+
-URL:            http://github.com/simon3z/wolpd
-Source0:        https://github.com/simon3z/%{name}/archive/v%{version}/%{name}-%{version}.tar.gz
+License:	GPLv3+
+URL:		https://github.com/F-i-f/wolpd/
+Source0:	%{name}-%{version}.tar.gz
 
 %{?systemd_requires}
 
@@ -15,55 +15,55 @@ BuildRequires:  automake
 BuildRequires:  help2man
 BuildRequires:  systemd
 
-
 %description
-Wake-On-Lan proxy daemon.
+Wake-on-LAN is an Ethernet computer networking standard that allows a
+computer to be turned on or woken up by a network message. The message
+is usually sent by a simple program executed on another computer on
+the local area network.
+
+WOL packets are not forwarded by routers, which is where wolpd comes
+into play, by proxying WOL packets from one network to an other.
+wolpd can forward either or both raw Ethernet WOL frames and UDP WOL
+packets.
 
 %prep
 %setup -q
 
-
 %build
-test -x ./configure || ./autogen.sh
+autoreconf -i
 %configure
 make %{?_smp_mflags}
 
-
 %install
 rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT
-%{__install} -D -m 755 wolpd.service \
-    $RPM_BUILD_ROOT/%{_unitdir}/wolpd.service
-%{__install} -D -m 755 wolpd.sysconfig \
-    $RPM_BUILD_ROOT/%{_sysconfdir}/sysconfig/wolpd
-
-
-%clean
-rm -rf $RPM_BUILD_ROOT
-
+%make_install
 
 %post
+useradd -r -d /var/empty/wolpd -c 'Wake-on-LAN Proxy Daemon' %{name} >& /dev/null || :
 %systemd_post wolpd.service
-
 
 %preun
 %systemd_preun wolpd.service
-
+if [ $1 -eq 0 ] ; then
+  userdel %{name} >& /dev/null || :
+fi
 
 %postun
 %systemd_postun_with_restart wolpd.service
 
-
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS COPYING NEWS ChangeLog README.md
-%config(noreplace) %{_sysconfdir}/sysconfig/wolpd
-%{_sbindir}/wolpd
-%{_unitdir}/wolpd.service
-%{_mandir}/man8/wolpd.8*
-
+ %doc AUTHORS ChangeLog NEWS README
+%config(noreplace) %{_sysconfdir}/sysconfig/%{name}
+%{_sbindir}/%{name}
+%{_unitdir}/%{name}.service
+%{_mandir}/man*/%{name}.*
+%dir %{_localstatedir}/empty/%{name}
 
 %changelog
+* Tue Apr 16 2019 Philippe Troin <phil@fifi.org> - 1.0-1
+- New upstream release 1.0.
+
 * Sun Jun 19 2016 Federico Simoncelli <fsimonce@redhat.com> 0.5.2-1
 - new package built with tito
 

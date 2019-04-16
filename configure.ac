@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT([wolpd], [0.5.1], [https://github.com/F-i-f/wolpd/issues])
+AC_INIT([wolpd], [1.0], [https://github.com/F-i-f/wolpd/issues])
 AC_CONFIG_AUX_DIR([config.aux])
 FI_PROJECT()
 

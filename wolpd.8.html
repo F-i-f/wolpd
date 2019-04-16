@@ -1,0 +1,371 @@
+<!-- Creator     : groff version 1.22.3 -->
+<!-- CreationDate: Tue Apr 16 11:02:52 2019 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>WOLPD</title>
+
+</head>
+<body>
+
+<h1 align="center">WOLPD</h1>
+
+<a href="#NAME">NAME</a><br>
+<a href="#SYNOPSIS">SYNOPSIS</a><br>
+<a href="#DESCRIPTION">DESCRIPTION</a><br>
+<a href="#OPTIONS">OPTIONS</a><br>
+<a href="#PROMISCUOUS MODE">PROMISCUOUS MODE</a><br>
+<a href="#SECURITY">SECURITY</a><br>
+<a href="#PERFORMANCE">PERFORMANCE</a><br>
+<a href="#EXAMPLES">EXAMPLES</a><br>
+<a href="#REPORTING BUGS">REPORTING BUGS</a><br>
+<a href="#COPYRIGHT">COPYRIGHT</a><br>
+<a href="#SEE ALSO">SEE ALSO</a><br>
+
+<hr>
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">wolpd &minus;
+Wake-On-LAN proxy daemon</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>wolpd</b>
+[<i>OPTION</i>]...</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Wake-on-LAN
+(WOL) is an Ethernet computer networking standard that
+allows a computer to be turned on or woken up by a network
+message. The message is usually sent by a simple program
+executed on another computer on the local area network.</p>
+
+<p style="margin-left:11%; margin-top: 1em">WOL packets are
+not forwarded by routers, which is where <b>wolpd</b> comes
+into play, by proxying WOL packets from one network to an
+other.</p>
+
+<p style="margin-left:11%; margin-top: 1em">WOL packets can
+be send either over UDP transport or in a raw Ethernet
+frame. <b>wolpd</b> can listen to one or both kinds on an
+<i>input interface</i> and forward them to an <i>output
+interface</i> which must be specified respectively with
+<b>--input-interface</b> and <b>--output-interface</b>
+options.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default,
+<b>wolpd</b> only listens for Ethernet frames with Ethertype
+<i>0x0842</i> which is the standard Ethertype for raw WOL
+packets. The Ethertype can be changed with the
+<b>--ethertype</b> option. Listening for raw Ethernet frames
+can also be disabled with the <b>--no-ether</b> option.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>wolpd</b>
+can also listen for UDP-encapsulated WOL packets if the
+<b>--udp</b> or <b>--port</b> options are used. Just using
+<b>--udp</b> will turn on listening to UDP packets on
+<b>any</b> UDP port. Using the <b>--port</b> option (with or
+without the <b>--udp</b> option) will turn on UDP listening
+only on the given UDP port.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;C</b>,
+<b>&minus;&minus;chroot</b>=<i>DIRECTORY</i></p>
+
+<p style="margin-left:22%;">chroot(2) to DIRECTORY.</p>
+
+<p style="margin-left:11%;"><b>&minus;e</b>,
+<b>&minus;&minus;ethertype</b>=<i>ETHERTYPE</i></p>
+
+<p style="margin-left:22%;">Listen for WOL packets with
+given ethernet type. (Default: 0x0842)</p>
+
+<p style="margin-left:11%;"><b>&minus;E</b>,
+<b>&minus;&minus;no&minus;ether</b></p>
+
+<p style="margin-left:22%;">Do not listen for raw ethernet
+WOL packets.</p>
+
+<p style="margin-left:11%;"><b>&minus;f</b>,
+<b>&minus;&minus;foreground</b></p>
+
+<p style="margin-left:22%;">Don&rsquo;t fork to
+background.</p>
+
+<p style="margin-left:11%;"><b>&minus;h</b>,
+<b>&minus;&minus;help</b></p>
+
+<p style="margin-left:22%;">Print this help, then exit.</p>
+
+<p style="margin-left:11%;"><b>&minus;i</b>,
+<b>&minus;&minus;input&minus;interface</b>=<i>IFACE</i></p>
+
+<p style="margin-left:22%;">Source network interface.</p>
+
+<p style="margin-left:11%;"><b>&minus;o</b>,
+<b>&minus;&minus;output&minus;interface</b>=<i>IFACE</i></p>
+
+<p style="margin-left:22%;">Destination network
+interface.</p>
+
+<p style="margin-left:11%;"><b>&minus;p</b>,
+<b>&minus;&minus;port</b>=<i>PORT</i></p>
+
+<p style="margin-left:22%;">UDP port used for WOL packets.
+Implies <b>&minus;&minus;udp</b>.</p>
+
+<p style="margin-left:11%;"><b>&minus;P</b>,
+<b>&minus;&minus;promiscuous</b></p>
+
+<p style="margin-left:22%;">Put the input interface in
+promiscuous mode.</p>
+
+<p style="margin-left:11%;"><b>&minus;s</b>,
+<b>&minus;&minus;setuid</b>=<i>USER</i></p>
+
+<p style="margin-left:22%;">Change the process user if to
+USER after initialization. (Default: keep running as
+root)</p>
+
+<p style="margin-left:11%;"><b>&minus;u</b>,
+<b>&minus;&minus;udp</b></p>
+
+<p style="margin-left:22%;">Listens to UDP WOL packets.
+Unless a PORT is specified with <b>&minus;&minus;port</b>,
+listens to *all* UDP ports.</p>
+
+<p style="margin-left:11%;"><b>&minus;U</b>,
+<b>&minus;&minus;no&minus;udp</b></p>
+
+<p style="margin-left:22%;">Do not listen for WOL packets
+on UDP. (default)</p>
+
+<p style="margin-left:11%;"><b>&minus;v</b>,
+<b>&minus;&minus;version</b></p>
+
+<p style="margin-left:22%;">Print version number, then
+exit.</p>
+
+<h2>PROMISCUOUS MODE
+<a name="PROMISCUOUS MODE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>--promiscuous</b> option sets the input interface
+specified with <b>--input-interface</b> in promiscuous mode.
+This is only necessary:</p>
+
+<p style="margin-left:17%; margin-top: 1em">- when
+listening for raw Ethernet WOL frames, if the unicast WOL
+<br>
+packets are used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">- when
+listening for UDP WOL packets, if the machine running
+<b>wolpd</b> is not the default router on the network.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the WOL
+packets don&rsquo;t get forwarded by <b>wolpd</b>, you may
+want to try the <b>--promiscuous</b> option.</p>
+
+<h2>SECURITY
+<a name="SECURITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">For best
+security, run wolpd with both <b>--chroot</b> and
+<b>--setuid</b> options. <br>
+Create an empty directory (eg. /var/empty/wolpd), owned by
+root. <br>
+Create a dedicated wolpd user and group. <br>
+Then run wolpd with:</p>
+
+<p style="margin-left:14%; margin-top: 1em">wolpd
+<b>--chroot</b> /var/empty/wolpd <b>--setuid</b> wolpd
+<i>[other-options]</i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>wolpd</b>
+logs every packet it forwards to <b>syslog(3)</b> and the
+messages look like:</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">wolpd[<i>pid</i>]:
+magic raw Ethernet packet from <i>XX:XX:XX:XX:XX:XX</i>
+forwarded to <i>XX:XX:XX:XX:XX:XX</i></p>
+
+
+<p style="margin-left:14%; margin-top: 1em">wolpd[<i>pid</i>]:
+magic UDP packet from <i>dd.dd.dd.dd</i> (UDP dport
+<i>port</i>) forwarded to <i>XX:XX:XX:XX:XX:XX</i></p>
+
+
+<p style="margin-left:14%; margin-top: 1em">wolpd[<i>pid</i>]:
+magic UDP packet from <i>dd.dd.dd.dd</i> forwarded to
+<i>XX:XX:XX:XX:XX:XX</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Errors are also
+logged to <b>syslog(3)</b> (or to standard error instead if
+running in the <b>--foreground</b> ).</p>
+
+<h2>PERFORMANCE
+<a name="PERFORMANCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>wolpd</b>
+uses socket filters (BPF) on its input raw socket(s) to
+inspect the frames and validates the full WOL payload. Only
+valid WOL frames are returned to user-space, and the invalid
+ones are discarded in the kernel.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+however using the <b>--promiscuous</b> option may negatively
+affect networking performance.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Assuming the
+following network:</p>
+
+<pre style="margin-left:11%; margin-top: 1em">            enp1 +---------+ enp2
+   -----+--------+ router1 +----+----------+------
+        |        +---------+    |          |
+        |                       |          |
+    +---+---+               +---+---+  +---+---+
+    | host1 |               | host2 |  | host3 |
+    +-------+               +-------+  +-------+
+                                       54:0:0:0:0:1</pre>
+
+
+<p style="margin-left:11%; margin-top: 1em">You do not need
+<b>wolpd</b> to send WOL packets from host2 to host3 since
+they are on the same network. But <b>wolpd</b> is needed if
+you want to sent WOL packets from host1 to host3:</p>
+
+<p style="margin-left:14%; margin-top: 1em"><b>wolpd
+--input-interface</b> enp1 <b>--output-interface</b>
+enp2</p>
+
+<p style="margin-left:17%; margin-top: 1em">will forward
+broadcast raw Ethernet WOL frames with the standard WOL
+Ethertype of <i>0x0842</i> from enp1 to enp2. You can then
+WOL host3 from host1 by running on host1:</p>
+
+<p style="margin-left:20%;"><b>ether-wake -b</b>
+54:0:0:0:0:1</p>
+
+<p style="margin-left:17%;">Note that <b>-b</b> is required
+when invoking ether-wake since <b>wolpd</b> is not running
+in promiscuous mode.</p>
+
+<p style="margin-left:14%; margin-top: 1em"><b>wolpd
+--input-interface</b> enp1 <b>--output-interface</b> enp2
+<b>--promiscuous</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">will forward
+any raw Ethernet WOL frames with the standard WOL Ethertype
+of <i>0x0842</i> from enp1 to enp2. You can then WOL host3
+from host1 by running on host1:</p>
+
+<p style="margin-left:20%;"><b>ether-wake</b>
+54:0:0:0:0:1</p>
+
+<p style="margin-left:14%; margin-top: 1em"><b>wolpd
+--input-interface</b> enp1 <b>--output-interface</b> enp2
+<b>--ethertype</b> <i>0x8088</i></p>
+
+<p style="margin-left:17%; margin-top: 1em">will forward
+any Ethernet WOL frames with the custom Ethertype of
+<i>0x8088</i> from enp1 to enp2.</p>
+
+<p style="margin-left:14%; margin-top: 1em"><b>wolpd
+--input-interface</b> enp1 <b>--output-interface</b> enp2
+<b>--no-ether --udp</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">will forward
+any WOL UDP packet on <i>any</i> UDP port from enp1 to
+enp2.</p>
+
+<p style="margin-left:14%; margin-top: 1em"><b>wolpd
+--input-interface</b> enp1 <b>--output-interface</b> enp2
+<b>--no-ether --port</b> <i>9</i></p>
+
+<p style="margin-left:17%; margin-top: 1em">will forward
+any WOL UDP packet on port <i>9</i> from enp1 to enp2.</p>
+
+<p style="margin-left:14%; margin-top: 1em"><b>wolpd
+--input-interface</b> enp1 <b>--output-interface</b> enp2
+<b>--port</b> <i>9</i></p>
+
+<p style="margin-left:17%; margin-top: 1em">will forward
+both broadcast raw Ethernet WOL frames with the standard WOL
+Ethertype of <i>0x0842</i> and WOL UDP packets on port
+<i>9</i> from enp1 to enp2.</p>
+
+<h2>REPORTING BUGS
+<a name="REPORTING BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Report bugs to
+&lt;https://github.com/F&minus;i&minus;f/wolpd/issues&gt;.</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+&copy; 2010 Federico Simoncelli <br>
+Copyright &copy; 2019 Philippe Troin (F&minus;i&minus;f on
+GitHub)</p>
+
+<p style="margin-left:11%; margin-top: 1em">wolpd comes
+with ABSOLUTELY NO WARRANTY. <br>
+This is free software, and you are welcome to redistribute
+it under certain conditions. You should have received a copy
+of the GNU General Public License along with this program.
+If not, see &lt;http://www.gnu.org/licenses/&gt;.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ether-wake(8)</b></p>
+<hr>
+</body>
+</html>
