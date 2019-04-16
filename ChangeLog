@@ -1,5 +1,19 @@
 2019-04-15  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.init.in: Update to WOLPD_ARGS.
+	(start): Use --chroot and --setuid.
+
+	* wolpd.service.in (Documentation): Update.
+	(ExecStart): Use --chroot and --setuid.  Update to WOLPD_ARGS.
+
+	* wolpd.sysconfig (WOLPDARGS): Rename to WOLPD_ARGS.
+
+	* Makefile.am: Move all .PHONY declarations before the phony
+	targets.
+	(install-data-local): Also install an empty chroot directory.
+	(wolpd.init wolpd.service): Also substitute localstatedir.
+	(install-data-local-sysconfig): Replace $(INSTALL) -d by $(MKDIR_P).
+
 	* Makefile.am (install-data-local-init, uninstall-local-init): Fix
 	missing install/uninstall of systemd service file and init scripts
 	when DESTDIR is used.

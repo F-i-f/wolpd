@@ -1,11 +1,11 @@
 [Unit]
 Description=Wake-On-LAN Proxy Daemon
-Documentation=man:wolpd(8) https://github.com/simon3z/wolpd
+Documentation=man:wolpd(8) https://github.com/F-i-f/wolpd
 After=syslog.target network.target
 
 [Service]
 EnvironmentFile=-@sysconfdir@/sysconfig/wolpd
-ExecStart=@sbindir@/wolpd -f $WOLPDARGS
+ExecStart=@sbindir@/wolpd --foreground --setuid wolpd --chroot @localstatedir@/empty/wolpd $WOLPD_ARGS
 
 [Install]
 WantedBy=multi-user.target

@@ -36,6 +36,7 @@ keep_generated_files       = wolpd.8 wolpd.8.html wolpd.8.pdf
 expendable_generated_files = wolpd.init wolpd.service
 all_generated_files        = $(keep_generated_files) $(expendable_generated_files)
 
+.PHONY: all-local
 all-local: $(all_generated_files)
 
 wolpd.8: $(srcdir)/wolpd.c $(srcdir)/wolpd.h2m
@@ -43,14 +44,20 @@ wolpd.8: $(srcdir)/wolpd.c $(srcdir)/wolpd.h2m
 
 wolpd.init wolpd.service: Makefile
 	sed -e 's![@]sbindir@!$(sbindir)!g' \
-	    -e 's![@]sysconfdir@!$(sysconfdir)!g' $(srcdir)/$@.in > $@
+	    -e 's![@]sysconfdir@!$(sysconfdir)!g' \
+	    -e 's![@]localstatedir@!$(localstatedir)!g' \
+	  $(srcdir)/$@.in > $@
 
 wolpd.init: wolpd.init.in
 wolpd.service: wolpd.service.in
 
 # Install
-install-data-local: install-data-local-init install-data-local-sysconfig
+.PHONY: install-data-local
+install-data-local: install-data-local-init \
+		    install-data-local-sysconfig \
+		    install-data-chroot-dir
 
+.PHONY: install-data-local-init
 install-data-local-init: wolpd.service wolpd.init
 	@if systemctl --version >& /dev/null; \
 	then \
@@ -83,13 +90,20 @@ install-data-local-init: wolpd.service wolpd.init
 	  done; \
 	fi
 
+.PHONY: install-data-local-sysconfig
 install-data-local-sysconfig:
-	$(INSTALL) -d "$(DESTDIR)$(sysconfdir)/sysconfig"
+	$(MKDIR_P) "$(DESTDIR)$(sysconfdir)/sysconfig"
 	$(INSTALL_DATA) $(srcdir)/wolpd.sysconfig "$(DESTDIR)$(sysconfdir)/sysconfig/wolpd"
 
+.PHONY: install-data-chroot-dir
+install-data-chroot-dir:
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/empty/wolpd"
+
 # Uninstall
+.PHONY: uninstall-local
 uninstall-local: uninstall-local-init uninstall-local-sysconfig
 
+.PHONY: uninstall-local-init
 uninstall-local-init:
 	@if systemctl --version >& /dev/null; \
 	then \
@@ -115,14 +129,12 @@ uninstall-local-init:
 	  done; \
 	fi
 
+.PHONY: uninstall-local-sysconfig
 uninstall-local-sysconfig:
 	rm -f "$(DESTDIR)$(sysconfdir)/sysconfig/wolpd"
 
 # Clean & misc
 CLEANFILES	     = $(expendable_generated_files)
 MAINTAINERCLEANFILES = $(keep_generated_files)
-
-.PHONY: all-local install-local install-local-init install-local-sysconfig
-.PHONY: uninstall-local uninstall-local-init uninstall-local-sysconfig
 
 @FI_AUTOMAKE@

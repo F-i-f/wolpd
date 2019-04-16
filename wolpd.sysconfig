@@ -1,5 +1,5 @@
-# wolpd - Wake-On-LAN proxy daemon extra arguments 
+# wolpd - Wake-On-LAN Proxy Daemon
 
-# example:
-#WOLPDARGS="-i eth0"
-
+# Both --input-interface and --output-interface arguments must be provided
+# Replace FILLME below as appropriate for your system.
+WOLPD_ARGS="--input-interface FILLME --output-interface FILLME"

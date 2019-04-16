@@ -24,13 +24,17 @@
 
 exec="@sbindir@/wolpd"
 
+WOLPD_USER="wolpd"
+WOLPD_CHROOT_DIR="@localstatedir@/var/empty/wolpd"
+WOLPD_ARGS=""
+
 [ -e "@sysconfdir@/sysconfig/wolpd" ] && . "@sysconfdir@/sysconfig/wolpd"
 
 lockfile=/var/lock/subsys/wolpd
 
 start() {
     echo -n $"Starting wolpd: "
-    daemon $exec $WOLPDARGS
+    daemon $exec --chroot "$WOLPD_CHROOT_DIR" --setuid "$WOLPD_USER" $WOLPDARGS
     retval=$?
     echo
     [ $retval -eq 0 ] && touch $lockfile
