@@ -1,5 +1,7 @@
 2019-04-15  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.c (ATTRIBUTE_FORMAT): Fix macro expansion if not using gcc.
+
 	* wolpd.init.in: Update to WOLPD_ARGS.
 	(start): Use --chroot and --setuid.
 

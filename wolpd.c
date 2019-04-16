@@ -51,8 +51,8 @@
 # define ATTRIBUTE_UNUSED __attribute__((unused))
 # define ATTRIBUTE_FORMAT(a,b) __attribute__((format(printf, a, b)))
 #else /* ! __GNUC__ */
-# define ATTRIBUTE_UNUSED /**/
-# define ATTRIBUTE_FORMAT /**/
+# define ATTRIBUTE_UNUSED      /**/
+# define ATTRIBUTE_FORMAT(a,b) /**/
 #endif /* ! __GNUC__ */
 
 #define SOCK_DESCR_IN_ETHER "raw Ethernet input"
