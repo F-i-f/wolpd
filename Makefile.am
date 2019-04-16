@@ -40,7 +40,8 @@ all_generated_files        = $(keep_generated_files) $(expendable_generated_file
 all-local: $(all_generated_files)
 
 wolpd.8: $(srcdir)/wolpd.c $(srcdir)/wolpd.h2m
-	-$(HELP2MAN) -i $(srcdir)/wolpd.h2m -o $@ ./wolpd
+	-$(HELP2MAN) -i $(srcdir)/wolpd.h2m -o $@ ./wolpd \
+	   --version-string="$$(./wolpd --version | sed -e 's! (git: .*!!')"
 
 wolpd.init wolpd.service: Makefile
 	sed -e 's![@]sbindir@!$(sbindir)!g' \

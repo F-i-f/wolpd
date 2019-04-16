@@ -1,5 +1,8 @@
 2019-04-15  Philippe Troin  <phil@fifi.org>
 
+	* Makefile.am (wolpd.8): Filter out the git version when calling
+	help2man.
+
 	* wolpd.c (ATTRIBUTE_FORMAT): Fix macro expansion if not using gcc.
 
 	* wolpd.init.in: Update to WOLPD_ARGS.
