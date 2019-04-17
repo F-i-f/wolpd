@@ -1,5 +1,8 @@
 2019-04-16  Philippe Troin  <phil@fifi.org>
 
+	* NEWS, README.md, configure.ac, wolpd.8*, wolpd.spec: Update for
+	release 1.0.1.
+
 	* wolpd.c (main): Set exit_code to EXIT_SUCCESS when exiting after
 	receiving a signal.
 
