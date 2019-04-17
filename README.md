@@ -102,15 +102,15 @@ download the manual page as:
 ### From a release
 
 Download the [latest release from
-GitHub](https://github.com/F-i-f/wolpd/releases/download/v1.0.1/wolpd-1.0.1.tar.gz):
+GitHub](https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz):
 
 Download:
 
 * Source:
-  [https://github.com/F-i-f/wolpd/releases/download/v1.0.1/wolpd-1.0.1.tar.gz](https://github.com/F-i-f/wolpd/releases/download/v1.0.1/wolpd-1.0.1.tar.gz)
+  [https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz](https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz)
 
 * Signature:
-  [https://github.com/F-i-f/wolpd/releases/download/v1.0.1/wolpd-1.0.1.tar.gz.asc](https://github.com/F-i-f/wolpd/releases/download/v1.0.1/wolpd-1.0.1.tar.gz.asc)
+  [https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz.asc](https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz.asc)
 
 The source code release are signed with the GPG key ID `0x88D51582`,
 available on your [nearest GPG server](https://pgp.mit.edu/).
@@ -118,15 +118,15 @@ available on your [nearest GPG server](https://pgp.mit.edu/).
 You can also find all releases on the [GitHub release
 page](https://github.com/F-i-f/wolpd/releases/).  Be careful to
 download the source code from the link named with the full file name
-(_wolpd-1.0.1.tar.gz_), and **not** from the links marked _Source code
+(_wolpd-1.0.2.tar.gz_), and **not** from the links marked _Source code
 (zip)_ or _Source code (tar.gz)_ as these are repository snapshots
 generated automatically by GitHub and require specialized tools to
 build (see [Building from GitHub](#from-the-github-repository)).
 
 After downloading the sources, unpack and build with:
 ``` shell
-tar xvzf wolpd-1.0.1.tar.gz
-cd wolpd-1.0.1
+tar xvzf wolpd-1.0.2.tar.gz
+cd wolpd-1.0.2
 ./configure
 make
 make install
@@ -146,6 +146,11 @@ make install
 ```
 
 ## Changelog
+
+### Version 1.0.2
+#### April 17, 2019
+
+* Improve logging.
 
 ### Version 1.0.1
 #### April 16, 2019

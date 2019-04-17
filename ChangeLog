@@ -1,5 +1,8 @@
 2019-04-17  Philippe Troin  <phil@fifi.org>
 
+	* NEWS, README.md, configure.ac, wolpd.8*, wolpd.spec: Update for
+	release 1.0.2.
+
 	* wolpd.c (syslog_or_print): Detect when stderr is connected to
 	systemd's journald and don't log the command name and pid prefix
 	as journald already prepends them.

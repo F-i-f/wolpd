@@ -1,5 +1,5 @@
 <!-- Creator     : groff version 1.22.3 -->
-<!-- CreationDate: Tue Apr 16 11:02:52 2019 -->
+<!-- CreationDate: Wed Apr 17 15:27:16 2019 -->
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 "http://www.w3.org/TR/html4/loose.dtd">
 <html>
@@ -214,25 +214,48 @@ Then run wolpd with:</p>
 <i>[other-options]</i></p>
 
 <p style="margin-left:11%; margin-top: 1em"><b>wolpd</b>
-logs every packet it forwards to <b>syslog(3)</b> and the
-messages look like:</p>
+logs every packet it forwards to <b>syslog(3)</b> (or to
+standard error instead if running in the
+<b>--foreground</b>) and the messages look like:</p>
 
 
-<p style="margin-left:14%; margin-top: 1em">wolpd[<i>pid</i>]:
-magic raw Ethernet packet from <i>XX:XX:XX:XX:XX:XX</i>
-forwarded to <i>XX:XX:XX:XX:XX:XX</i></p>
+<p style="margin-left:17%; margin-top: 1em"><tt>wolpd[</tt><i>pid</i><tt>]:
+magic raw Ethernet packet from</tt> <i>XX:XX:XX:XX:XX:XX</i>
+<tt>to</tt> <i>YY:YY:YY:YY:YY:YY</i> <tt>WOL</tt>
+<i>ZZ:ZZ:ZZ:ZZ:ZZ:ZZ</i></p>
 
 
-<p style="margin-left:14%; margin-top: 1em">wolpd[<i>pid</i>]:
-magic UDP packet from <i>dd.dd.dd.dd</i> (UDP dport
-<i>port</i>) forwarded to <i>XX:XX:XX:XX:XX:XX</i></p>
+<p style="margin-left:17%; margin-top: 1em">wolpd[<i>pid</i><tt>]:
+magic UDP packet from</tt>
+<i>XX:XX:XX:XX:XX:XX</i><tt>/</tt><i>xx.xx.xx.xx</i>
+<tt>port</tt> <i>sport</i> <tt>to</tt>
+<i>YY:YY:YY:YY:YY:YY</i><tt>/</tt><i>yy.yy.yy.yy</i>
+<tt>port</tt> <i>dport</i> <tt>WOL</tt>
+<i>ZZ:ZZ:ZZ:ZZ:ZZ:ZZ</i></p>
 
+<p style="margin-left:14%; margin-top: 1em">where:</p>
 
-<p style="margin-left:14%; margin-top: 1em">wolpd[<i>pid</i>]:
-magic UDP packet from <i>dd.dd.dd.dd</i> forwarded to
-<i>XX:XX:XX:XX:XX:XX</i></p>
+<p style="margin-left:17%; margin-top: 1em">&minus;
+<i>XX:XX:XX:XX:XX:XX</i> is the source Ethernet address of
+the received WOL frame,</p>
 
-<p style="margin-left:11%; margin-top: 1em">Errors are also
+<p style="margin-left:17%; margin-top: 1em">&minus;
+<i>YY:YY:YY:YY:YY:YY</i> is the destination Ethernet address
+of the received WOL frame,</p>
+
+<p style="margin-left:17%; margin-top: 1em">&minus;
+<i>xx.xx.xx.xx</i> and <i>sport</i> are the source IP
+address and UDP port of the received WOL frame,</p>
+
+<p style="margin-left:17%; margin-top: 1em">&minus;
+<i>yy.yy.yy.yy</i> and <i>dport</i> are the destination IP
+address and UDP port of the received WOL frame,</p>
+
+<p style="margin-left:17%; margin-top: 1em">&minus;
+<i>ZZ:ZZ:ZZ:ZZ:ZZ:ZZ</i> is Ethernet address of the host to
+be awoken (the WOL payload field).</p>
+
+<p style="margin-left:14%; margin-top: 1em">Errors are also
 logged to <b>syslog(3)</b> (or to standard error instead if
 running in the <b>--foreground</b> ).</p>
 
@@ -247,8 +270,8 @@ inspect the frames and validates the full WOL payload. Only
 valid WOL frames are returned to user-space, and the invalid
 ones are discarded in the kernel.</p>
 
-<p style="margin-left:11%; margin-top: 1em">Note that
-however using the <b>--promiscuous</b> option may negatively
+<p style="margin-left:11%; margin-top: 1em">However note
+that using the <b>--promiscuous</b> option may negatively
 affect networking performance.</p>
 
 <h2>EXAMPLES
