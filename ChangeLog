@@ -1,3 +1,14 @@
+2019-04-17  Philippe Troin  <phil@fifi.org>
+
+	* wolpd.h2m (SECURITY): Update for new logging format.
+
+	* wolpd.c (struct validate_results): Add daddr_descr.
+	(forward_packets): Show daddr_descr and the WOL payload ethernet
+	address.
+	(validate_ether_packet, validate_udp_packet): Fill in daddr_descr.
+	(validate_udp_packet): Always print source ethernet address and
+	UDP ports.
+
 2019-04-16  Philippe Troin  <phil@fifi.org>
 
 	* NEWS, README.md, configure.ac, wolpd.8*, wolpd.spec: Update for

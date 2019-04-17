@@ -75,6 +75,7 @@ struct eth_frame {
 struct validate_results {
     const char* payload;
     char        saddr_descr[VALIDATE_RESULTS_ADDRESS_DESCR_SIZE];
+    char        daddr_descr[VALIDATE_RESULTS_ADDRESS_DESCR_SIZE];
 };
 
 /*
@@ -849,12 +850,16 @@ int forward_packets(int in_sock, const
             }
         }
 
-        syslog_or_print(LOG_NOTICE, "magic %s packet from %s forwarded to "
-                        "%02x:%02x:%02x:%02x:%02x:%02x",
-                        in_sock_descr, validation_results.saddr_descr,
-                        wol_msg.head.h_dest[0], wol_msg.head.h_dest[1],
-                        wol_msg.head.h_dest[2], wol_msg.head.h_dest[3],
-                        wol_msg.head.h_dest[4], wol_msg.head.h_dest[5]);
+        syslog_or_print(LOG_NOTICE, "magic %s packet from %s to %s WOL %02x:%02x:%02x:%02x:%02x:%02x forwarded",
+                        in_sock_descr,
+                        validation_results.saddr_descr,
+                        validation_results.daddr_descr,
+                        ((unsigned char*)(validation_results.payload + ETH_ALEN))[0],
+                        ((unsigned char*)(validation_results.payload + ETH_ALEN))[1],
+                        ((unsigned char*)(validation_results.payload + ETH_ALEN))[2],
+                        ((unsigned char*)(validation_results.payload + ETH_ALEN))[3],
+                        ((unsigned char*)(validation_results.payload + ETH_ALEN))[4],
+                        ((unsigned char*)(validation_results.payload + ETH_ALEN))[5]);
 
         if (wol_len != sent_len) {
             syslog_or_print(LOG_WARNING, "short write: %u/%u bytes sent when forwarding %s packet from %s",
@@ -875,6 +880,11 @@ int validate_ether_packet(struct validate_results *results,
              frame->head.h_source[0], frame->head.h_source[1],
              frame->head.h_source[2], frame->head.h_source[3],
              frame->head.h_source[4], frame->head.h_source[5]);
+    snprintf(results->daddr_descr, sizeof(results->daddr_descr),
+             "%02x:%02x:%02x:%02x:%02x:%02x",
+             frame->head.h_dest[0], frame->head.h_dest[1],
+             frame->head.h_dest[2], frame->head.h_dest[3],
+             frame->head.h_dest[4], frame->head.h_dest[5]);
     results->payload = (const char*)&frame->data;
 
     return 1;
@@ -909,16 +919,20 @@ int validate_udp_packet(struct validate_results *results,
         return 0;
     }
 
-    if (g_udp_port == UDP_PORT_LISTEN_ALL) {
-        snprintf(results->saddr_descr, sizeof(results->saddr_descr),
-                 "%s (UDP dport %d)",
-                 inet_ntoa(*(struct in_addr*)&ip_head->saddr),
-                 ntohs(udp_head->uh_dport));
-    } else {
-        snprintf(results->saddr_descr, sizeof(results->saddr_descr),
-                 "%s",
-                 inet_ntoa(*(struct in_addr*)&ip_head->saddr));
-    }
+    snprintf(results->saddr_descr, sizeof(results->saddr_descr),
+             "%02x:%02x:%02x:%02x:%02x:%02x/%s port %d",
+             frame->head.h_source[0], frame->head.h_source[1],
+             frame->head.h_source[2], frame->head.h_source[3],
+             frame->head.h_source[4], frame->head.h_source[5],
+             inet_ntoa(*(struct in_addr*)&ip_head->saddr),
+             ntohs(udp_head->uh_sport));
+    snprintf(results->daddr_descr, sizeof(results->daddr_descr),
+             "%02x:%02x:%02x:%02x:%02x:%02x/%s port %d",
+             frame->head.h_dest[0], frame->head.h_dest[1],
+             frame->head.h_dest[2], frame->head.h_dest[3],
+             frame->head.h_dest[4], frame->head.h_dest[5],
+             inet_ntoa(*(struct in_addr*)&ip_head->daddr),
+             ntohs(udp_head->uh_dport));
 
     if (ip_head->protocol != IPPROTO_UDP) {
         syslog_or_print(LOG_WARNING, "dropped %s packet with IP protocol %d from %s",
