@@ -1177,6 +1177,7 @@ int main(int argc, char *argv[])
     }
 
     syslog_or_print(LOG_NOTICE, "exiting on signal %d", g_interrupt_signum);
+    exit_code = EXIT_SUCCESS;
     goto exit_fail4;
 
  exit_fail5:
