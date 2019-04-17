@@ -1,5 +1,9 @@
 2019-04-17  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.c (syslog_or_print): Detect when stderr is connected to
+	systemd's journald and don't log the command name and pid prefix
+	as journald already prepends them.
+
 	* wolpd.h2m (SECURITY): Update for new logging format.
 
 	* wolpd.c (struct validate_results): Add daddr_descr.

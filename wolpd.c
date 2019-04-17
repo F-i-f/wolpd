@@ -138,7 +138,29 @@ void ATTRIBUTE_FORMAT(2, 3) syslog_or_print(int syslog_priority,
     if (g_syslog_opened) {
         syslog(syslog_priority, "%s", buf);
     } else {
-        fprintf(stderr, "%s[%lu]: %s\n", progname, (unsigned long) getpid(), buf);
+        static enum { systemd_unchecked,
+                      systemd_present,
+                      systemd_absent } systemd_detected = systemd_unchecked;
+        if (systemd_unchecked == systemd_unchecked) {
+            struct stat sbuf;
+
+            systemd_detected = ( (fstat(fileno(stderr), &sbuf) == 0
+                                  && (sbuf.st_mode & S_IFMT) == S_IFSOCK
+                                  && getenv("JOURNAL_STREAM") != NULL)
+                                 ? systemd_present
+                                 : systemd_absent);
+        }
+
+        switch(systemd_detected) {
+        case systemd_present:
+            fprintf(stderr, "%s\n", buf);
+            break;
+        case systemd_absent:
+            fprintf(stderr, "%s[%lu]: %s\n", progname, (unsigned long) getpid(), buf);
+            break;
+        default:
+            abort();
+        }
     }
 }
 
