@@ -117,13 +117,12 @@ logs every packet it forwards to
 and the messages look like:
 .PP
 .RS 4
-.ft CW
 .Bd -unfilled
-wolpd[\fIpid\f(CW]: magic raw Ethernet packet from
+\f[CW]wolpd[\fIpid\f(CW]: magic raw Ethernet packet from
 \fIXX:XX:XX:XX:XX:XX\f(CW to \fIYY:YY:YY:YY:YY:YY\f(CW WOL
 \fIZZ:ZZ:ZZ:ZZ:ZZ:ZZ\f(CW
 .PP
-wolpd[\fIpid\f(CW]: magic UDP packet from
+\f[CW]wolpd[\fIpid\f(CW]: magic UDP packet from
 \fIXX:XX:XX:XX:XX:XX\f(CW/\fIxx.xx.xx.xx\f(CW port \fIsport\f(CW to
 \fIYY:YY:YY:YY:YY:YY\f(CW/\fIyy.yy.yy.yy\f(CW port \fIdport\f(CW WOL
 \fIZZ:ZZ:ZZ:ZZ:ZZ:ZZ\f(CW

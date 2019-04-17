@@ -1,5 +1,7 @@
 2019-04-17  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.h2m: Fix fixed-width fonts in logging examples.
+
 	* NEWS, README.md, configure.ac, wolpd.8*, wolpd.spec: Update for
 	release 1.0.2.
 
