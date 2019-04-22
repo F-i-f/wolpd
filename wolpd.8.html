@@ -1,5 +1,5 @@
 <!-- Creator     : groff version 1.22.3 -->
-<!-- CreationDate: Wed Apr 17 15:27:16 2019 -->
+<!-- CreationDate: Mon Apr 22 09:25:51 2019 -->
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 "http://www.w3.org/TR/html4/loose.dtd">
 <html>
@@ -184,8 +184,7 @@ specified with <b>--input-interface</b> in promiscuous mode.
 This is only necessary:</p>
 
 <p style="margin-left:17%; margin-top: 1em">- when
-listening for raw Ethernet WOL frames, if the unicast WOL
-<br>
+listening for raw Ethernet WOL frames, if unicast WOL
 packets are used.</p>
 
 <p style="margin-left:17%; margin-top: 1em">- when
@@ -225,7 +224,7 @@ magic raw Ethernet packet from</tt> <i>XX:XX:XX:XX:XX:XX</i>
 <i>ZZ:ZZ:ZZ:ZZ:ZZ:ZZ</i></p>
 
 
-<p style="margin-left:17%; margin-top: 1em">wolpd[<i>pid</i><tt>]:
+<p style="margin-left:17%; margin-top: 1em"><tt>wolpd[</tt><i>pid</i><tt>]:
 magic UDP packet from</tt>
 <i>XX:XX:XX:XX:XX:XX</i><tt>/</tt><i>xx.xx.xx.xx</i>
 <tt>port</tt> <i>sport</i> <tt>to</tt>
@@ -255,7 +254,7 @@ address and UDP port of the received WOL frame,</p>
 <i>ZZ:ZZ:ZZ:ZZ:ZZ:ZZ</i> is Ethernet address of the host to
 be awoken (the WOL payload field).</p>
 
-<p style="margin-left:14%; margin-top: 1em">Errors are also
+<p style="margin-left:11%; margin-top: 1em">Errors are also
 logged to <b>syslog(3)</b> (or to standard error instead if
 running in the <b>--foreground</b> ).</p>
 
