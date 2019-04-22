@@ -1,3 +1,7 @@
+2019-04-22  Philippe Troin  <phil@fifi.org>
+
+	* wolpd.h2m: Improve language.
+
 2019-04-17  Philippe Troin  <phil@fifi.org>
 
 	* wolpd.h2m: Fix fixed-width fonts in logging examples.

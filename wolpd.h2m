@@ -80,8 +80,8 @@ option sets the input interface specified with
 in promiscuous mode.  This is only necessary:
 .RS 4
 .PP
-- when listening for raw Ethernet WOL frames, if the unicast WOL
-  packets are used.
+- when listening for raw Ethernet WOL frames, if unicast WOL
+packets are used.
 .PP
 - when listening for UDP WOL packets, if the machine running
 .B wolpd
@@ -147,8 +147,8 @@ UDP port of the received WOL frame,
 .PP
 \- \fIZZ:ZZ:ZZ:ZZ:ZZ:ZZ\fR is Ethernet address of the host to be awoken
 (the WOL payload field).
+.RS -4
 .PP
-.RE
 Errors are also logged to
 .BR syslog(3)
 (or to standard error instead if running in the
