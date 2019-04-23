@@ -1,3 +1,9 @@
+2019-04-23  Philippe Troin  <phil@fifi.org>
+
+	* m4/fi_project.m4 (FI_PROJECT): Ignore gcov files.
+
+	* .gitignore: Ignore gcov files.
+
 2019-04-22  Philippe Troin  <phil@fifi.org>
 
 	* wolpd.h2m: Improve language.
