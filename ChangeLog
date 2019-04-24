@@ -1,3 +1,7 @@
+2019-04-24  Philippe Troin  <phil@fifi.org>
+
+	* m4/fi_project.m4: Remove .deps on distclean, not on clean.
+
 2019-04-23  Philippe Troin  <phil@fifi.org>
 
 	* m4/fi_project.m4 (FI_PROJECT): Ignore gcov files.
