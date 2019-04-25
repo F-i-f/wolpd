@@ -39,7 +39,7 @@ all_generated_files        = $(keep_generated_files) $(expendable_generated_file
 .PHONY: all-local
 all-local: $(all_generated_files)
 
-wolpd.8: $(srcdir)/wolpd.c $(srcdir)/wolpd.h2m
+wolpd.8: $(srcdir)/wolpd.c $(srcdir)/wolpd.h2m $(srcdir)/configure.ac
 	-$(HELP2MAN) -i $(srcdir)/wolpd.h2m -o $@ ./wolpd \
 	   --version-string="$$(./wolpd --version | sed -e 's! (git: .*!!')"
 

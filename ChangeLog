@@ -1,5 +1,8 @@
 2019-04-25  Philippe Troin  <phil@fifi.org>
 
+	* Makefile.am (wolpd.8): Depend on configure.ac for version
+	changes.
+
 	* m4/fi_format_man.m4 (FI_FORMAT_MAN):
 	AC_REQUIRE(FI_FORMAT_MAN_INIT_ONCE), use groff instead of man to
 	format manpage hard copies.
