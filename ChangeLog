@@ -1,5 +1,8 @@
 2019-04-25  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.h2m: Typographic changes.
+	(REPORTING BUGS, COPYRIGHT): Override auto-generated sections.
+
 	* Makefile.am (wolpd.8): Depend on configure.ac for version
 	changes.
 

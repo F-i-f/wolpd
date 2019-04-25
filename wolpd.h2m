@@ -40,9 +40,9 @@ can listen to one or both kinds on an
 and forward them to an
 .I output interface
 which must be specified respectively with
-.B --input-interface
+.B \-\-input\-interface
 and
-.B --output-interface
+.B \-\-output\-interface
 options.
 
 By default,
@@ -51,53 +51,53 @@ only listens for Ethernet frames with Ethertype
 .I 0x0842
 which is the standard Ethertype for raw WOL packets.  The Ethertype
 can be changed with the
-.B --ethertype
+.B \-\-ethertype
 option.  Listening for raw Ethernet frames can also be disabled with
 the
-.B --no-ether
+.B \-\-no\-ether
 option.
 
 .B wolpd
 can also listen for UDP-encapsulated WOL packets if the
-.B --udp
+.B \-\-udp
 or
-.B --port
+.B \-\-port
 options are used.  Just using
-.B --udp
+.B \-\-udp
 will turn on listening to UDP packets on
 .BI any
 UDP port.  Using the
-.B --port
+.B \-\-port
 option (with or without the
-.B --udp
+.B \-\-udp
 option) will turn on UDP listening only on the given UDP port.
 
 [PROMISCUOUS MODE]
 The
-.B --promiscuous
+.B \-\-promiscuous
 option sets the input interface specified with
-.B --input-interface
+.B \-\-input\-interface
 in promiscuous mode.  This is only necessary:
 .RS 4
-.PP
-- when listening for raw Ethernet WOL frames, if unicast WOL
+.IP \(bu 3
+when listening for raw Ethernet WOL frames, if unicast WOL
 packets are used.
-.PP
-- when listening for UDP WOL packets, if the machine running
+.IP \(bu
+when listening for UDP WOL packets, if the machine running
 .B wolpd
 is not the default router on the network.
 .RE
 
 If the WOL packets don't get forwarded by \fBwolpd\fR, you may want to
 try the
-.B --promiscuous
+.B \-\-promiscuous
 option.
 
 [SECURITY]
 For best security, run wolpd with both
-.B --chroot
+.B \-\-chroot
 and
-.B --setuid
+.B \-\-setuid
 options.
 .br
 Create an empty directory (eg. /var/empty/wolpd), owned by root.
@@ -107,13 +107,13 @@ Create a dedicated wolpd user and group.
 Then run wolpd with:
 .PP
 .RS 2
-wolpd \fB--chroot\fR /var/empty/wolpd \fB--setuid\fR wolpd \fI[other-options]\fR
+\fBwolpd\fR \fB\-\-chroot\fR /var/empty/wolpd \fB\-\-setuid\fR wolpd \fI[other-options]\fR
 .RE
 .PP
 .B wolpd
 logs every packet it forwards to
 .BR syslog(3)
-(or to standard error instead if running in the \fB--foreground\fR)
+(or to standard error instead if running in the \fB\-\-foreground\fR)
 and the messages look like:
 .PP
 .RS 4
@@ -132,27 +132,28 @@ and the messages look like:
 .RS -2
 where:
 .PP
-.RS 2
-\- \fIXX:XX:XX:XX:XX:XX\fR is the source Ethernet address of the
+.RS 3
+.IP \(bu 3
+\fIXX:XX:XX:XX:XX:XX\fR is the source Ethernet address of the
 received WOL frame,
-.PP
-\- \fIYY:YY:YY:YY:YY:YY\fR is the destination Ethernet address of the
+.IP \(bu
+\fIYY:YY:YY:YY:YY:YY\fR is the destination Ethernet address of the
 received WOL frame,
-.PP
-\- \fIxx.xx.xx.xx\fR and \fIsport\fR are the source IP address and UDP
+.IP \(bu
+\fIxx.xx.xx.xx\fR and \fIsport\fR are the source IP address and UDP
 port of the received WOL frame,
-.PP
-\- \fIyy.yy.yy.yy\fR and \fIdport\fR are the destination IP address and
+.IP \(bu
+\fIyy.yy.yy.yy\fR and \fIdport\fR are the destination IP address and
 UDP port of the received WOL frame,
-.PP
-\- \fIZZ:ZZ:ZZ:ZZ:ZZ:ZZ\fR is Ethernet address of the host to be awoken
+.IP \(bu
+\fIZZ:ZZ:ZZ:ZZ:ZZ:ZZ\fR is Ethernet address of the host to be awoken
 (the WOL payload field).
-.RS -4
+.RS -5
 .PP
 Errors are also logged to
 .BR syslog(3)
 (or to standard error instead if running in the
-.B --foreground
+.B \-\-foreground
 ).
 
 [PERFORMANCE]
@@ -163,7 +164,7 @@ are returned to user-space, and the invalid ones are discarded in the
 kernel.
 .PP
 However note that using the
-.B --promiscuous
+.B \-\-promiscuous
 option may negatively affect networking performance.
 
 [EXAMPLES]
@@ -192,7 +193,7 @@ network.  But
 is needed if you want to sent WOL packets from host1 to host3:
 .RS 2
 .PP
-\fBwolpd --input-interface\fR enp1 \fB--output-interface\fR enp2
+\fBwolpd \-\-input\-interface\fR enp1 \fB\-\-output\-interface\fR enp2
 .RS 2
 .PP
 will forward broadcast raw Ethernet WOL frames with the standard WOL
@@ -202,19 +203,19 @@ from enp1 to enp2.  You can then WOL host3 from host1 by running on
 host1:
 .br
 .RS 2
-.B  ether-wake -b
+.B  ether-wake \-b
 54:0:0:0:0:1
 .br
 .RS -2
 Note that
-.B -b
+.B \-b
 is required when invoking ether-wake since
 .B wolpd
 is not running in promiscuous mode.
 .RS -2
 .PP
-\fBwolpd --input-interface\fR enp1 \fB--output-interface\fR enp2 \
-\fB--promiscuous\fR
+\fBwolpd \-\-input\-interface\fR enp1 \fB\-\-output\-interface\fR enp2 \
+\fB\-\-promiscuous\fR
 .RS 2
 .PP
 will forward any raw Ethernet WOL frames with the standard WOL
@@ -229,8 +230,8 @@ host1:
 .RS -2
 .RS -2
 .PP
-\fBwolpd --input-interface\fR enp1 \fB--output-interface\fR enp2 \
-\fB--ethertype\fR \fI0x8088\fR
+\fBwolpd \-\-input\-interface\fR enp1 \fB\-\-output\-interface\fR enp2 \
+\fB\-\-ethertype\fR \fI0x8088\fR
 .RS 2
 .PP
 will forward any Ethernet WOL frames with the custom Ethertype of
@@ -238,8 +239,8 @@ will forward any Ethernet WOL frames with the custom Ethertype of
 from enp1 to enp2.
 .RS -2
 .PP
-\fBwolpd --input-interface\fR enp1 \fB--output-interface\fR enp2 \
-\fB--no-ether\fR \fB--udp\fR
+\fBwolpd \-\-input\-interface\fR enp1 \fB\-\-output\-interface\fR enp2 \
+\fB\-\-no\-ether\fR \fB\-\-udp\fR
 .RS 2
 .PP
 will forward any WOL UDP packet on
@@ -247,8 +248,8 @@ will forward any WOL UDP packet on
 UDP port from enp1 to enp2.
 .RS -2
 .PP
-\fBwolpd --input-interface\fR enp1 \fB--output-interface\fR enp2 \
-\fB--no-ether\fR \fB--port\fR \fI9\fR
+\fBwolpd \-\-input\-interface\fR enp1 \fB\-\-output\-interface\fR enp2 \
+\fB\-\-no\-ether\fR \fB\-\-port\fR \fI9\fR
 .RS 2
 .PP
 will forward any WOL UDP packet on port
@@ -256,8 +257,8 @@ will forward any WOL UDP packet on port
 from enp1 to enp2.
 .RS -2
 .PP
-\fBwolpd --input-interface\fR enp1 \fB--output-interface\fR enp2 \
-\fB--port\fR \fI9\fR
+\fBwolpd \-\-input\-interface\fR enp1 \fB\-\-output\-interface\fR enp2 \
+\fB\-\-port\fR \fI9\fR
 .RS 2
 .PP
 will forward both broadcast raw Ethernet WOL frames with the standard WOL
@@ -268,15 +269,41 @@ and WOL UDP packets on port
 from enp1 to enp2.
 .RE
 
+[=REPORTING BUGS]
+Report bugs on the
+.UR https://github.com/F-i-f/wolpd/issues
+GitHub Issues page
+.UE .
+
+[=COPYRIGHT]
+Copyright \(co 2010 Federico Simoncelli
+.br
+Copyright \(co 2019 Philippe Troin (
+.UR https://github.com/F-i-f
+F-i-f on GitHub
+.UE ).
+.PP
+.B wolpd
+comes with ABSOLUTELY NO WARRANTY.
+.br
+This is free software, and you are welcome to redistribute it
+under certain conditions.
+.br
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see
+.UR http://www.gnu.org/licenses/
+.UE .
+
 [SEE ALSO]
-.BR ether-wake(8)
+.BR ether-wake(8).
 
 /NOT-LIKELY-TO-BE-FOUND-RANDOM-STRING/
-This will prevent this text and the LocalWords lines below inserted by emacs from
+This will prevent this text and the LocalWords lines below inserted by Emacs from
 appearing in the nroff output.
 
-\"  LocalWords:  nroff wolpd WOL proxying UDP ethertype 0x0842 udp eg
-\"  LocalWords:  unicast chroot setuid br fB fR fI fBwolpd 0x0842 TP
-\"  LocalWords:  enp1 enp2 router1 host1 host2 host3 fI0x8088 0x8088
-\"  LocalWords:  fI9 h2m Simoncelli Troin MERCHANTABILITY 0x0842 BPF
-\"  LocalWords:  syslog fIpid dport fIport
+\"  LocalWords:  nroff wolpd WOL proxying UDP ethertype udp eg
+\"  LocalWords:  unicast chroot setuid br fB fR fI fBwolpd TP
+\"  LocalWords:  enp1 enp2 router1 host1 host2 host3 fI0x8088
+\"  LocalWords:  fI9 h2m Simoncelli Troin MERCHANTABILITY BPF
+\"  LocalWords:  syslog fIpid dport fIport IP Bd fIsport CDS
+\"  LocalWords:  fIdport CDE UE LocalWords
