@@ -32,7 +32,7 @@ EXTRA_DIST	= wolpd.8.html \
 		  wolpd.sysconfig \
 		  wolpd.h2m
 
-keep_generated_files       = wolpd.8 wolpd.8.html wolpd.8.pdf
+keep_generated_files       = wolpd.8
 expendable_generated_files = wolpd.init wolpd.service
 all_generated_files        = $(keep_generated_files) $(expendable_generated_files)
 

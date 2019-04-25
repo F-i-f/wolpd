@@ -1,3 +1,11 @@
+2019-04-25  Philippe Troin  <phil@fifi.org>
+
+	* Makefile.am (keep_generated_files): Drop wolpd.8.html and
+	wolpd.8.pdf as they're now removed automatically.
+
+	* m4/fi_format_man.m4: Generate rules to clean up generated manual
+	pages on maintainer-clean.
+
 2019-04-24  Philippe Troin  <phil@fifi.org>
 
 	* m4/fi_project.m4: Remove .deps on distclean, not on clean.

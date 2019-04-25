@@ -52,5 +52,14 @@ AC_DEFUN([FI_FORMAT_MAN],
 	    fi; \
 	  fi; \
 	fi
+
+all-am: ]patsubst([fi_format_man_manpage], [^.*/], []).fi_format_man_device[
+
+maintainer-clean-am: maintainer-clean-fi-format-man-]patsubst([fi_format_man_manpage], [^.*/], []).fi_format_man_device[
+
+.PHONY: maintainer-clean-fi-format-man-]patsubst([fi_format_man_manpage], [^.*/], []).fi_format_man_device[
+maintainer-clean-fi-format-man-]patsubst([fi_format_man_manpage], [^.*/], []).fi_format_man_device[:
+	rm -f ]patsubst([fi_format_man_manpage], [^.*/], []).fi_format_man_device[
+
 ])])])
 ])
