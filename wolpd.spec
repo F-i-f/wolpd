@@ -10,8 +10,6 @@ Source0:	%{name}-%{version}.tar.gz
 
 %{?systemd_requires}
 
-BuildRequires:  autoconf
-BuildRequires:  automake
 BuildRequires:  help2man
 BuildRequires:  systemd
 
@@ -30,8 +28,7 @@ packets.
 %setup -q
 
 %build
-autoreconf -i
-%configure
+%configure --enable-compiler-warnings
 make %{?_smp_mflags}
 
 %install
@@ -53,7 +50,7 @@ fi
 
 %files
 %defattr(-,root,root,-)
- %doc AUTHORS ChangeLog NEWS README
+ %doc AUTHORS ChangeLog NEWS README README.md
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 %{_sbindir}/%{name}
 %{_unitdir}/%{name}.service

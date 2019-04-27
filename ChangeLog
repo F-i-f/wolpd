@@ -1,5 +1,9 @@
 2019-04-26  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.spec (BuildRequires): Drop autoconf, automake
+	(build): Do not run autoreconf, not needed.
+	(doc): Add README.
+
 	* Makefile.am (EXTRA_DIST): Add README.md.
 
 	* README: Turn into a documentation overview.
