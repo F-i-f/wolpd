@@ -1,1 +1,12 @@
-README.md
+Wolpd - A Wake-On-LAN Proxy Daemon for Linux
+
+Documentation overview:
+
+* ChangeLog    - Detailed change list
+* INSTALL      - Generic install instructions
+* NEWS         - Release notes
+* README       - This file
+* README.md    - Help file
+* wolpd.8      - Manual page
+* wolpd.8.html - Manual page HTML hard copy
+* wolpd.8.pdf  - Manual page PDF hard copy

@@ -1,5 +1,12 @@
 2019-04-26  Philippe Troin  <phil@fifi.org>
 
+	* Makefile.am (EXTRA_DIST): Add README.md.
+
+	* README: Turn into a documentation overview.
+
+	* README.md: Expand download section, mention alternate download
+	sites.
+
 	* m4/fi_git_revision.m4 (FI_GIT_REVISION): Make the git check
 	quiet.
 

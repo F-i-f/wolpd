@@ -24,12 +24,13 @@ wolpd_SOURCES   = wolpd.c
 
 dist_man8_MANS  = wolpd.8
 
-EXTRA_DIST	= wolpd.8.html \
-		  wolpd.8.pdf \
-		  wolpd.init.in \
-		  wolpd.service.in \
-		  wolpd.spec \
-		  wolpd.sysconfig \
+EXTRA_DIST	= README.md		\
+		  wolpd.8.html		\
+		  wolpd.8.pdf		\
+		  wolpd.init.in		\
+		  wolpd.service.in	\
+		  wolpd.spec		\
+		  wolpd.sysconfig	\
 		  wolpd.h2m
 
 keep_generated_files       = wolpd.8

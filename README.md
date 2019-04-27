@@ -117,18 +117,29 @@ along with this program.  If not, see [http://www.gnu.org/licenses/].
 ### From a release
 
 Download the [latest release from
-GitHub](https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz):
+GitHub](https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz)
+or the [secondary mirror](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.2.tar.gz):
 
-Download:
+* [Primary Site (GitHub)](https://github.com/F-i-f/wolpd/releases/):
 
-* Source:
-  [https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz](https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz)
+  * Source:
+	[https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz](https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz)
 
-* Signature:
-  [https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz.asc](https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz.asc)
+  * Signature:
+	[https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz.asc](https://github.com/F-i-f/wolpd/releases/download/v1.0.2/wolpd-1.0.2.tar.gz.asc)
+
+* [Secondary Site](http://ftp.fifi.org/phil/wolpd/):
+
+  * Source:
+	[http://ftp.fifi.org/phil/wolpd/wolpd-1.0.2.tar.gz](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.2.tar.gz)
+
+  * Signature:
+	[http://ftp.fifi.org/phil/wolpd/wolpd-1.0.2.tar.gz.asc](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.2.tar.gz.asc)
+
 
 The source code release are signed with the GPG key ID `0x88D51582`,
-available on your [nearest GPG server](https://pgp.mit.edu/).
+available on your [nearest GPG server](https://pgp.mit.edu/) or
+[here](http://ftp.fifi.org/phil/GPG-KEY).
 
 You can also find all releases on the [GitHub release
 page](https://github.com/F-i-f/wolpd/releases/).  Be careful to
@@ -139,7 +150,8 @@ generated automatically by GitHub and require specialized tools to
 build (see [Building from GitHub](#from-the-github-repository)).
 
 After downloading the sources, unpack and build with:
-``` shell
+
+```shell
 tar xvzf wolpd-1.0.2.tar.gz
 cd wolpd-1.0.2
 ./configure
@@ -147,11 +159,18 @@ make
 make install
 ```
 
+Alternately, you can create a RPM file by moving the source tar file
+and the included `wolpd.spec` in your rpm build directory and running:
+
+```shell
+rpmbuild -ba SPECS/wolpd.spec
+```
+
 ### From the GitHub repository
 
 Clone the [repository](https://github.com/F-i-f/wolpd.git):
 
-``` shell
+```shell
 git clone https://github.com/F-i-f/wolpd.git
 cd wolpd
 autoreconf -i
