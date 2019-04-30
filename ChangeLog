@@ -1,3 +1,8 @@
+2019-04-30  Philippe Troin  <phil@fifi.org>
+
+	* m4/fi_format_man.m4 (FI_FORMAT_MAN): Mark the generated file as
+	.PRECIOUS. Use a m4 macro for the target name.
+
 2019-04-26  Philippe Troin  <phil@fifi.org>
 
 	* wolpd.spec (BuildRequires): Drop autoconf, automake
