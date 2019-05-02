@@ -24,8 +24,12 @@ wolpd_SOURCES   = wolpd.c
 
 dist_man8_MANS  = wolpd.8
 
-EXTRA_DIST	= README.md		\
-		  wolpd.8.html		\
+dist_doc_DATA	= AUTHORS		\
+		  NEWS			\
+		  README		\
+		  README.md
+
+EXTRA_DIST	= wolpd.8.html		\
 		  wolpd.8.pdf		\
 		  wolpd.init.in		\
 		  wolpd.service.in	\
