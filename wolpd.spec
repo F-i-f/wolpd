@@ -50,11 +50,11 @@ fi
 
 %files
 %defattr(-,root,root,-)
- %doc AUTHORS ChangeLog NEWS README README.md
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 %{_sbindir}/%{name}
 %{_unitdir}/%{name}.service
 %{_mandir}/man*/%{name}.*
+%{_docdir}
 %dir %{_localstatedir}/empty/%{name}
 
 %changelog

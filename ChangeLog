@@ -1,5 +1,8 @@
 2019-05-02  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.spec (files): Ship %{_docdir} instead of individual %doc
+	files.
+
 	* Makefile.am (dist_doc_DATA): Create.
 	(EXTRA_DIST): Move AUTHORS, NEWS, README, README.md to
 	dist_doc_DATA.
