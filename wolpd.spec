@@ -54,7 +54,7 @@ fi
 %{_sbindir}/%{name}
 %{_unitdir}/%{name}.service
 %{_mandir}/man*/%{name}.*
-%{_docdir}
+%{_docdir}/%{name}
 %dir %{_localstatedir}/empty/%{name}
 
 %changelog
