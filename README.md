@@ -100,10 +100,14 @@ along with this program.  If not, see [http://www.gnu.org/licenses/].
 
 * Make (eg. GNU make)
 
-* help2man (optional, used to generate the manual page)
-
 * autotools (autoconf, automake) is only required if building from the
   repository.
+
+* help2man (optional, used to generate the manual page)
+
+* groff is optionally needed to generate the man page hard copies
+  (HTML & PDF). It is only needed if you intend to update the manual
+  page ROFF or wolpd C sources.
 
 * The provided init scripts and systemd service files assume that a
   user with no privileges named _wolpd_ is present on the system.  You
@@ -157,6 +161,7 @@ cd wolpd-1.0.2
 ./configure
 make
 make install
+make install-pdf install-html # Optional
 ```
 
 Alternately, you can create a RPM file by moving the source tar file
@@ -177,6 +182,7 @@ autoreconf -i
 ./configure
 make
 make install
+make install-pdf install-html # Optional
 ```
 
 ## Changelog
