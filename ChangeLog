@@ -1,5 +1,8 @@
 2019-05-03  Philippe Troin  <phil@fifi.org>
 
+	* NEWS, README.md, configure.ac, wolpd.8*, wolpd.spec: Update for
+	release 1.0.3.
+
 	* wolpd.spec (files): Use %{_docdir}/%{name}, not just %{_docdir}.
 
 	* README.md: Mention make install-pdf/html, optional groff

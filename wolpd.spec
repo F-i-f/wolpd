@@ -1,5 +1,5 @@
 Name:		wolpd
-Version:	1.0.2
+Version:	1.0.3
 Release:	1%{?dist}
 Summary:	Wake-On-Lan Proxy Daemon
 
@@ -58,6 +58,12 @@ fi
 %dir %{_localstatedir}/empty/%{name}
 
 %changelog
+* Fri May  3 2019 Philippe Troin <phil@fifi.org> - 1.0.3-1
+- Upstream updated to 1.0.3.
+- Rely on make install to install documentation files.
+- Do not autoreconf, it's unneeded.
+- Use compiler warnings in configure.
+
 * Wed Apr 17 2019 Philippe Troin <phil@fifi.org> - 1.0.2-1
 - Upstream updated to 1.0.2.
 
