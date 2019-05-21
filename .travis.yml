@@ -5,10 +5,34 @@ git:
 branches:
   only:
     - master
+    - coverity_scan
 
 language: c
 
+env:
+  global:
+    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+    #   via the "travis encrypt" command using the project repo's public key
+    - secure: "n4THJiWLA6qAplFaJcSgQM/aDua7RuALaCx80QWrixSEaVmNzc7nXDu8NU9kcFv7tqwxQyeL1xZOm/evDmYD0MBROqBlup/dYqZaSY6K/BFoGJ1Kc1LegwIFilBWU3LF+NnQcKobGbfV+zmmlmdYhfg11dgPkJcdfOZgZbilOoihpv3UsAi2rci6PKXS13y1KnQFHBltI+6MgX6oNDc+S7KKIFEU/p55pewXjfeWv4W8XEGebyvex6+AEM1esmZW1QU/HdGCxKFVirp2HQjivqeyMFN5f6V/iBasqhV47aCm61LvbxtF91yCXRIl9VIUaxqLSvcZ/Rx9t+DERQz7HrTFRWiwsxNli2TPZ1EEj8zNxN7wUgvjrB0eeQQhfhI5SQdgYGUmNykZddcuFy7sD6nWsi5fuKN1frWQR4HqVh49yh4i5xRawcwLk38hHe1ri0IEMkYXYpfY4kHav2S/90im9Oc0ICj8jUyYLkmoYLFNx8rgLRPyaIlawMXiuyoRv+4Bi4LZR27Ri4A16lPL5QztMI5RuaBfypHLl3+EGfcH2bLEtZE2yFujcN+fgtVwqSeNQImSDfnJgXC9kmlTmOTSZJVTDeGxAlbHAaFwew+zNuM5rZYigHg/PETsSbssGM31jhEsFEqpCpHIBMsu1l486LLvlsSjl6+LGeoQV8k="
+
+before_install:
+  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+
+addons:
+  coverity_scan:
+    project:
+      name: "F-i-f/wolpd"
+      description: "Wake-On-Lan proxy daemon for Linux"
+    notification_email: phil+github@fifi.org
+    build_command_prepend: "autoreconf -i && ./configure"
+    build_command: "make"
+    branch_pattern: coverity_scan
+
+before_install:
+  - test $TRAVIS_BRANCH != coverity_scan -o ${TRAVIS_JOB_NUMBER##*.} = 1 || exit 0
+
 script:
+  - test $TRAVIS_BRANCH != coverity_scan || exit 0
   - autoreconf -i
   - ./configure --enable-compiler-warnings
   - make check
