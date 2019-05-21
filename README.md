@@ -3,6 +3,10 @@ Wolpd
 A Wake-On-LAN Proxy Daemon for Linux
 ====================================
 
+Master: [![Build Status](https://travis-ci.org/F-i-f/wolpd.svg?branch=master)](https://travis-ci.org/F-i-f/wolpd)
+
+Coverity: [![Build Status](https://travis-ci.org/F-i-f/wolpd.svg?branch=coverity_scan)](https://travis-ci.org/F-i-f/wolpd) [![Coverity Scan Build Status](https://scan.coverity.com/projects/18444/badge.svg)](https://scan.coverity.com/projects/f-i-f-wolpd)
+
 ## Features
 
 * Proxies WOL packets from one interface to an other.
