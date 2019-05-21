@@ -663,16 +663,18 @@ ssize_t read_packet(int sock, const char* sock_descr, void *buf, size_t buf_size
 
 int get_if_index(int sock, const char *if_name, const char *if_description)
 {
+    size_t if_name_len;
     struct ifreq ifhw;
-    memset(&ifhw, 0, sizeof(ifhw));
 
-    /* The strncpy below is totally fine, quieten gcc */
-#pragma GCC diagnostic push
-#if defined(__GNUC__) && ! defined(__clang__) && __GNUC__ >= 9
-#pragma GCC diagnostic ignored "-Wstringop-truncation"
-#endif
-    strncpy(ifhw.ifr_name, if_name, sizeof(ifhw.ifr_name));
-#pragma GCC diagnostic pop
+    if_name_len = strlen(if_name);
+    if (if_name_len >= sizeof(ifhw.ifr_name)) {
+        fprintf(stderr, "%s: %s interface name \"%s\" too long, maximum is %u characters\n",
+                progname, if_description, if_name, (unsigned)sizeof(ifhw.ifr_name)-1);
+        return -1;
+    }
+
+    memset(&ifhw, 0, sizeof(ifhw));
+    memcpy(ifhw.ifr_name, if_name, if_name_len);
 
    if (ioctl(sock, SIOCGIFINDEX, &ifhw) < 0) {
         fprintf(stderr, "%s: couldn't find %s interface %s: %s\n",
