@@ -141,7 +141,7 @@ void ATTRIBUTE_FORMAT(2, 3) syslog_or_print(int syslog_priority,
         static enum { systemd_unchecked,
                       systemd_present,
                       systemd_absent } systemd_detected = systemd_unchecked;
-        if (systemd_unchecked == systemd_unchecked) {
+        if (systemd_detected == systemd_unchecked) {
             struct stat sbuf;
 
             systemd_detected = ( (fstat(fileno(stderr), &sbuf) == 0
