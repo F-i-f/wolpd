@@ -1110,6 +1110,11 @@ int main(int argc, char *argv[])
                     progname, g_chroot, strerror(errno));
             goto exit_fail3;
         }
+        if (chdir("/") != 0) {
+            fprintf(stderr, "%s: while chroot()ing: couldn't chdir to \"%s\": %s\n",
+                    progname, g_chroot, strerror(errno));
+            goto exit_fail3;
+        }
     }
 
     /* Root is not needed anymore, drop it if requested */

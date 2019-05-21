@@ -1,5 +1,9 @@
 2019-05-21  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.c (main): Chdir to / after chroot to pacify Coverity
+	"211811 Insecure chroot" warning.  It should have been fine before
+	since we had chdir()ed there just before chroot.
+
 	* wolpd.c (get_if_index): Only mask -Wstringop-truncation on
 	actual gcc, not clang.
 
