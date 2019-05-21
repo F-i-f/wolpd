@@ -668,7 +668,9 @@ int get_if_index(int sock, const char *if_name, const char *if_description)
 
     /* The strncpy below is totally fine, quieten gcc */
 #pragma GCC diagnostic push
+#if defined(__GNUC__) && ! defined(__clang__) && __GNUC__ >= 9
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
+#endif
     strncpy(ifhw.ifr_name, if_name, sizeof(ifhw.ifr_name));
 #pragma GCC diagnostic pop
 

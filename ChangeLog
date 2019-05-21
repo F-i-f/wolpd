@@ -1,5 +1,8 @@
 2019-05-21  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.c (get_if_index): Only mask -Wstringop-truncation on
+	actual gcc, not clang.
+
 	* wolpd.c (syslog_or_print): Don't check systemd all the time.
 
 2019-05-03  Philippe Troin  <phil@fifi.org>
