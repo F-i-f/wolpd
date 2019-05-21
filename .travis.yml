@@ -1,0 +1,34 @@
+git:
+  depth: 1
+  quiet: true
+
+branches:
+  only:
+    - master
+
+language: c
+
+script:
+  - autoreconf -i
+  - ./configure --enable-compiler-warnings
+  - make check
+  - make distcheck
+
+matrix:
+  include:
+
+    - os: linux
+      dist: trusty
+      compiler: gcc
+
+    - os: linux
+      dist: trusty
+      compiler: clang
+
+    - os: linux
+      dist: xenial
+      compiler: gcc
+
+    - os: linux
+      dist: xenial
+      compiler: clang
