@@ -125,24 +125,24 @@ along with this program.  If not, see [http://www.gnu.org/licenses/].
 ### From a release
 
 Download the [latest release from
-GitHub](https://github.com/F-i-f/wolpd/releases/download/v1.0.3/wolpd-1.0.3.tar.gz)
-or the [secondary mirror](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.3.tar.gz):
+GitHub](https://github.com/F-i-f/wolpd/releases/download/v1.0.4/wolpd-1.0.4.tar.gz)
+or the [secondary mirror](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.4.tar.gz):
 
 * [Primary Site (GitHub)](https://github.com/F-i-f/wolpd/releases/):
 
   * Source:
-	[https://github.com/F-i-f/wolpd/releases/download/v1.0.3/wolpd-1.0.3.tar.gz](https://github.com/F-i-f/wolpd/releases/download/v1.0.3/wolpd-1.0.3.tar.gz)
+	[https://github.com/F-i-f/wolpd/releases/download/v1.0.4/wolpd-1.0.4.tar.gz](https://github.com/F-i-f/wolpd/releases/download/v1.0.4/wolpd-1.0.4.tar.gz)
 
   * Signature:
-	[https://github.com/F-i-f/wolpd/releases/download/v1.0.3/wolpd-1.0.3.tar.gz.asc](https://github.com/F-i-f/wolpd/releases/download/v1.0.3/wolpd-1.0.3.tar.gz.asc)
+	[https://github.com/F-i-f/wolpd/releases/download/v1.0.4/wolpd-1.0.4.tar.gz.asc](https://github.com/F-i-f/wolpd/releases/download/v1.0.4/wolpd-1.0.4.tar.gz.asc)
 
 * [Secondary Site](http://ftp.fifi.org/phil/wolpd/):
 
   * Source:
-	[http://ftp.fifi.org/phil/wolpd/wolpd-1.0.3.tar.gz](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.3.tar.gz)
+	[http://ftp.fifi.org/phil/wolpd/wolpd-1.0.4.tar.gz](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.4.tar.gz)
 
   * Signature:
-	[http://ftp.fifi.org/phil/wolpd/wolpd-1.0.3.tar.gz.asc](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.3.tar.gz.asc)
+	[http://ftp.fifi.org/phil/wolpd/wolpd-1.0.4.tar.gz.asc](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.4.tar.gz.asc)
 
 
 The source code release are signed with the GPG key ID `0x88D51582`,
@@ -152,7 +152,7 @@ available on your [nearest GPG server](https://pgp.mit.edu/) or
 You can also find all releases on the [GitHub release
 page](https://github.com/F-i-f/wolpd/releases/).  Be careful to
 download the source code from the link named with the full file name
-(_wolpd-1.0.3.tar.gz_), and **not** from the links marked _Source code
+(_wolpd-1.0.4.tar.gz_), and **not** from the links marked _Source code
 (zip)_ or _Source code (tar.gz)_ as these are repository snapshots
 generated automatically by GitHub and require specialized tools to
 build (see [Building from GitHub](#from-the-github-repository)).
@@ -160,8 +160,8 @@ build (see [Building from GitHub](#from-the-github-repository)).
 After downloading the sources, unpack and build with:
 
 ```shell
-tar xvzf wolpd-1.0.3.tar.gz
-cd wolpd-1.0.3
+tar xvzf wolpd-1.0.4.tar.gz
+cd wolpd-1.0.4
 ./configure
 make
 make install
@@ -191,26 +191,32 @@ make install-pdf install-html # Optional
 
 ## Changelog
 
+### Version 1.0.4
+#### May 22, 2019
+
+- Fix [Coverity](https://scan.coverity.com/)-detected errors.
+- Only check that stdout is connected to systemd once.
+
 ### Version 1.0.3
 #### May 3, 2019
 
-* Build script-ware and documentation improvements.
+- Build script-ware and documentation improvements.
 
 ### Version 1.0.2
 #### April 17, 2019
 
-* Improve logging.
+- Improve logging.
 
 ### Version 1.0.1
 #### April 16, 2019
 
-* Minor bug fix release: Exit cleanly upon receiving a termination
+- Minor bug fix release: Exit cleanly upon receiving a termination
   signal.
 
 ### Version 1.0
 #### April 16, 2019
 
-* First release under new management.
+- First release under new management.
 
 ## This is a fork
 
@@ -242,5 +248,5 @@ It has now almost been completely rewritten by Philippe Troin (F-i-f on GitHub).
  -->
 <!--  LocalWords:  automake Changelog Simoncelli Troin gz github SysV
  -->
-<!--  LocalWords:  groff merchantability
+<!--  LocalWords:  groff merchantability Coverity stdout
  -->

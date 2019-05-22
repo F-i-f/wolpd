@@ -1,5 +1,11 @@
 -*- outline -*-
 
+* Release 1.0.4
+May 22, 2019.
+
+- Fix [Coverity](https://scan.coverity.com/)-detected errors.
+- Only check that stdout is connected to systemd once.
+
 * Release 1.0.3
 May 3, 2019.
 
@@ -24,3 +30,6 @@ Complete rewrite and extensive changes.
 * Release 0.5.1
 
 This was the last release from Federico Simoncelli federico.simoncelli@gmail.com.
+
+--
+LocalWords:  Coverity stdout systemd Simoncelli
