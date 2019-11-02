@@ -1,3 +1,8 @@
+2019-11-02  Philippe Troin  <phil@fifi.org>
+
+	* Makefile.am (unitpath): Default to @prefix@/lib/systemd/system
+	if systemd is not fully running like in mock chroots.
+
 2019-05-22  Philippe Troin  <phil@fifi.org>
 
 	* NEWS, README.md, configure.ac, wolpd.8*, wolpd.spec: Update for

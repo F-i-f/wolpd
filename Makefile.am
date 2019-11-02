@@ -72,6 +72,10 @@ install-data-local-init: wolpd.service wolpd.init
 		       | sed -e 's!^UnitPath=!!' \
 			     -e 's! !\n!g' \
 		       | egrep -v '/(etc($$|/)|run/)')"; \
+	  if [ "$$unitpath" = "" ]; \
+	  then \
+	    unitpath="@prefix@/lib/systemd/system"; \
+	  fi; \
 	  $(MKDIR_P) "$(DESTDIR)$$unitpath"; \
 	  if [ -d "$$unitpath" ]; \
 	  then \
@@ -118,6 +122,10 @@ uninstall-local-init:
 		       | sed -e 's!^UnitPath=!!' \
 			     -e 's! !\n!g' \
 		       | egrep -v '/(etc($$|/)|run/)')"; \
+	  if [ "$$unitpath" = "" ]; \
+	  then \
+	    unitpath="@prefix@/lib/systemd/system"; \
+	  fi; \
 	  if [ -d "$$unitpath" -a -w "$(DESTDIR)$$unitpath" ]; \
 	  then \
 	    ( set -x; \
