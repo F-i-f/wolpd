@@ -10,6 +10,7 @@ Source0:	%{name}-%{version}.tar.gz
 
 %{?systemd_requires}
 
+BuildRequires:  gcc
 BuildRequires:  help2man
 BuildRequires:  systemd
 

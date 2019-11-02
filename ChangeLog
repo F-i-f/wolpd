@@ -1,5 +1,7 @@
 2019-11-02  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.spec (BuildRequires): Add gcc.
+
 	* Makefile.am (unitpath): Default to @prefix@/lib/systemd/system
 	if systemd is not fully running like in mock chroots.
 
