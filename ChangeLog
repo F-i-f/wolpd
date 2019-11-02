@@ -1,5 +1,8 @@
 2019-11-02  Philippe Troin  <phil@fifi.org>
 
+	* NEWS, README.md, configure.ac, wolpd.8*, wolpd.spec: Update for
+	release 1.0.5.
+
 	* Makefile.am (install-data-local-init): Install SysV init file as
 	wolpd, not wolpd.init.
 

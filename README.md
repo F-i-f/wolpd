@@ -125,24 +125,24 @@ along with this program.  If not, see [http://www.gnu.org/licenses/].
 ### From a release
 
 Download the [latest release from
-GitHub](https://github.com/F-i-f/wolpd/releases/download/v1.0.4/wolpd-1.0.4.tar.gz)
-or the [secondary mirror](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.4.tar.gz):
+GitHub](https://github.com/F-i-f/wolpd/releases/download/v1.0.5/wolpd-1.0.5.tar.gz)
+or the [secondary mirror](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.5.tar.gz):
 
 * [Primary Site (GitHub)](https://github.com/F-i-f/wolpd/releases/):
 
   * Source:
-	[https://github.com/F-i-f/wolpd/releases/download/v1.0.4/wolpd-1.0.4.tar.gz](https://github.com/F-i-f/wolpd/releases/download/v1.0.4/wolpd-1.0.4.tar.gz)
+	[https://github.com/F-i-f/wolpd/releases/download/v1.0.5/wolpd-1.0.5.tar.gz](https://github.com/F-i-f/wolpd/releases/download/v1.0.5/wolpd-1.0.5.tar.gz)
 
   * Signature:
-	[https://github.com/F-i-f/wolpd/releases/download/v1.0.4/wolpd-1.0.4.tar.gz.asc](https://github.com/F-i-f/wolpd/releases/download/v1.0.4/wolpd-1.0.4.tar.gz.asc)
+	[https://github.com/F-i-f/wolpd/releases/download/v1.0.5/wolpd-1.0.5.tar.gz.asc](https://github.com/F-i-f/wolpd/releases/download/v1.0.5/wolpd-1.0.5.tar.gz.asc)
 
 * [Secondary Site](http://ftp.fifi.org/phil/wolpd/):
 
   * Source:
-	[http://ftp.fifi.org/phil/wolpd/wolpd-1.0.4.tar.gz](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.4.tar.gz)
+	[http://ftp.fifi.org/phil/wolpd/wolpd-1.0.5.tar.gz](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.5.tar.gz)
 
   * Signature:
-	[http://ftp.fifi.org/phil/wolpd/wolpd-1.0.4.tar.gz.asc](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.4.tar.gz.asc)
+	[http://ftp.fifi.org/phil/wolpd/wolpd-1.0.5.tar.gz.asc](http://ftp.fifi.org/phil/wolpd/wolpd-1.0.5.tar.gz.asc)
 
 
 The source code release are signed with the GPG key ID `0x88D51582`,
@@ -152,7 +152,7 @@ available on your [nearest GPG server](https://pgp.mit.edu/) or
 You can also find all releases on the [GitHub release
 page](https://github.com/F-i-f/wolpd/releases/).  Be careful to
 download the source code from the link named with the full file name
-(_wolpd-1.0.4.tar.gz_), and **not** from the links marked _Source code
+(_wolpd-1.0.5.tar.gz_), and **not** from the links marked _Source code
 (zip)_ or _Source code (tar.gz)_ as these are repository snapshots
 generated automatically by GitHub and require specialized tools to
 build (see [Building from GitHub](#from-the-github-repository)).
@@ -160,8 +160,8 @@ build (see [Building from GitHub](#from-the-github-repository)).
 After downloading the sources, unpack and build with:
 
 ```shell
-tar xvzf wolpd-1.0.4.tar.gz
-cd wolpd-1.0.4
+tar xvzf wolpd-1.0.5.tar.gz
+cd wolpd-1.0.5
 ./configure
 make
 make install
@@ -190,6 +190,14 @@ make install-pdf install-html # Optional
 ```
 
 ## Changelog
+
+### Version 1.0.5
+#### November 2, 2019
+
+- Use more compatible struct udphdr member names.
+- Spec file compatibility with RHEL6/7/8, SuSE, EPEL and Mageia (for
+  Copr builds).
+- Install systemd unit file even if systemd is down (like in mock).
 
 ### Version 1.0.4
 #### May 22, 2019
@@ -248,5 +256,7 @@ It has now almost been completely rewritten by Philippe Troin (F-i-f on GitHub).
  -->
 <!--  LocalWords:  automake Changelog Simoncelli Troin gz github SysV
  -->
-<!--  LocalWords:  groff merchantability Coverity stdout
+<!--  LocalWords:  groff merchantability Coverity stdout struct RHEL6
+ -->
+<!--  LocalWords:  udphdr SuSE EPEL Mageia Copr
  -->

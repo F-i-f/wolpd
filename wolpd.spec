@@ -1,5 +1,5 @@
 Name:		wolpd
-Version:	1.0.4
+Version:	1.0.5
 Release:	1%{?dist}
 Summary:	Wake-On-Lan Proxy Daemon
 
@@ -96,6 +96,13 @@ fi
 %dir %{_localstatedir}/empty/%{name}
 
 %changelog
+* Sat Nov  2 2019 Philippe Troin <phil@fifi.org> - 1.0.5-1
+- Upstream release 1.0.5:
+- Use more compatible struct udphdr member names.
+- Spec file compatibility with RHEL6/7/8, SuSE, EPEL and Mageia for
+  Copr builds.
+- Install systemd unit file even if systemd is down (like in mock).
+
 * Wed May 22 2019 Philippe Troin <phil@fifi.org> - 1.0.4-1
 - Upstream updated to 1.0.4.
 

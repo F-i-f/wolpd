@@ -1,5 +1,13 @@
 -*- outline -*-
 
+* Release 1.0.5
+November 2, 2019.
+
+- Use more compatible struct udphdr member names.
+- Spec file compatibility with RHEL6/7/8, SuSE, EPEL and Mageia for
+  Copr builds.
+- Install systemd unit file even if systemd is down (like in mock).
+
 * Release 1.0.4
 May 22, 2019.
 
@@ -32,4 +40,5 @@ Complete rewrite and extensive changes.
 This was the last release from Federico Simoncelli federico.simoncelli@gmail.com.
 
 --
-LocalWords:  Coverity stdout systemd Simoncelli
+LocalWords:  Coverity stdout systemd Simoncelli chroots RHEL6 SuSE
+LocalWords:  EPEL Mageia struct udphdr Copr
