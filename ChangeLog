@@ -1,5 +1,8 @@
 2019-11-02  Philippe Troin  <phil@fifi.org>
 
+	* Makefile.am (install-data-local-init): Install SysV init file as
+	wolpd, not wolpd.init.
+
 	* wolpd.spec: Handle Mageia (work-around for libtool), SuSE
 	(docdir work-around) RHEL* (missing fakeroot) and RHEL6 (SysV
 	init-based).

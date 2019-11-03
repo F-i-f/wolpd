@@ -93,7 +93,7 @@ install-data-local-init: wolpd.service wolpd.init
 	      (set -x; $(MKDIR_P) "$(DESTDIR)$$d"); \
 	      if [ -w "$(DESTDIR)$$d" ]; \
 	      then \
-		(set -x; $(INSTALL) wolpd.init "$(DESTDIR)$$d/wolpd.init" ); \
+		(set -x; $(INSTALL) wolpd.init "$(DESTDIR)$$d/wolpd" ); \
 		exit $$?; \
 	      fi; \
 	    fi; \
@@ -137,7 +137,7 @@ uninstall-local-init:
 	    if [ -d "$$d" -a -w "$(DESTDIR)$$d" ]; \
 	    then \
 	      (set -x; \
-		rm -f "$(DESTDIR)$$d/wolpd.init" ); \
+		rm -f "$(DESTDIR)$$d/wolpd" ); \
 	      exit $$?; \
 	    fi; \
 	  done; \
