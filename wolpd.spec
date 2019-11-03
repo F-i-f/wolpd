@@ -3,16 +3,35 @@ Version:	1.0.4
 Release:	1%{?dist}
 Summary:	Wake-On-Lan Proxy Daemon
 
-Group:          System Environment/Daemons
+Group:		System Environment/Daemons
 License:	GPLv3+
 URL:		https://github.com/F-i-f/wolpd/
-Source0:	%{name}-%{version}.tar.gz
+Source0:	https://github.com/F-i-f/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.gz
 
+Requires:	shadow-utils
+%if 0%{?rhel} == 0 || 0%{?rhel} >= 7
 %{?systemd_requires}
+%else
+Requires:	chkconfig
+%endif
 
-BuildRequires:  gcc
-BuildRequires:  help2man
-BuildRequires:  systemd
+BuildRequires:	autoconf
+BuildRequires:	automake
+BuildRequires:	gcc
+BuildRequires:	make
+%if 0%{?rhel} == 0 || 0%{?rhel} >= 7
+BuildRequires:	systemd
+%else
+BuildRequires:	chkconfig
+%endif
+%if 0%{?rhel} == 0
+BuildRequires:	help2man
+%endif
+
+# Work-around for Mageia mucking with config.aux files
+%if 0%{?mgaversion} > 0
+%define _disable_libtoolize 1
+%endif
 
 %description
 Wake-on-LAN is an Ethernet computer networking standard that allows a
@@ -29,7 +48,7 @@ packets.
 %setup -q
 
 %build
-%configure --enable-compiler-warnings
+%configure --enable-compiler-warnings --docdir="%{_docdir}/%{name}"
 make %{?_smp_mflags}
 
 %install
@@ -38,10 +57,24 @@ rm -rf $RPM_BUILD_ROOT
 
 %post
 useradd -r -d /var/empty/wolpd -c 'Wake-on-LAN Proxy Daemon' %{name} >& /dev/null || :
+%if 0%{?rhel} == 0 || 0%{?rhel} >= 7
 %systemd_post wolpd.service
+%else
+if [ $1 -eq 0 ]; then
+    /sbin/chkconfig --add wolpd
+fi
+/sbin/service wolpd condrestart >& /dev/null || :
+%endif
 
 %preun
+%if 0%{?rhel} == 0 || 0%{?rhel} >= 7
 %systemd_preun wolpd.service
+%else
+if [ $1 -eq 0 ]; then
+    /sbin/service wolpd stop >&/dev/null || :
+    /sbin/chkconfig --del wolpd
+fi
+%endif
 if [ $1 -eq 0 ] ; then
   userdel %{name} >& /dev/null || :
 fi
@@ -53,7 +86,11 @@ fi
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 %{_sbindir}/%{name}
+%if 0%{?rhel} == 0 || 0%{?rhel} >= 7
 %{_unitdir}/%{name}.service
+%else
+%config(noreplace) %{_sysconfdir}/init.d/wolpd
+%endif
 %{_mandir}/man*/%{name}.*
 %{_docdir}/%{name}
 %dir %{_localstatedir}/empty/%{name}

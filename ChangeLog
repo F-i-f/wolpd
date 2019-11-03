@@ -1,5 +1,9 @@
 2019-11-02  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.spec: Handle Mageia (work-around for libtool), SuSE
+	(docdir work-around) RHEL* (missing fakeroot) and RHEL6 (SysV
+	init-based).
+
 	* wolpd.c (validate_udp_packet): Use SysV struct udphdr members
 	(source/dest/len) instead of BSD ones (uh_([ds]port/ulen)) for
 	compatibility with RHEL6.
