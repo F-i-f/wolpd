@@ -951,14 +951,14 @@ int validate_udp_packet(struct validate_results *results,
              frame->head.h_source[2], frame->head.h_source[3],
              frame->head.h_source[4], frame->head.h_source[5],
              inet_ntoa(*(struct in_addr*)&ip_head->saddr),
-             ntohs(udp_head->uh_sport));
+             ntohs(udp_head->source));
     snprintf(results->daddr_descr, sizeof(results->daddr_descr),
              "%02x:%02x:%02x:%02x:%02x:%02x/%s port %d",
              frame->head.h_dest[0], frame->head.h_dest[1],
              frame->head.h_dest[2], frame->head.h_dest[3],
              frame->head.h_dest[4], frame->head.h_dest[5],
              inet_ntoa(*(struct in_addr*)&ip_head->daddr),
-             ntohs(udp_head->uh_dport));
+             ntohs(udp_head->dest));
 
     if (ip_head->protocol != IPPROTO_UDP) {
         syslog_or_print(LOG_WARNING, "dropped %s packet with IP protocol %d from %s",
@@ -966,15 +966,15 @@ int validate_udp_packet(struct validate_results *results,
         return 0;
     }
 
-    if (g_udp_port != UDP_PORT_LISTEN_ALL && ntohs(udp_head->uh_dport) != g_udp_port) {
+    if (g_udp_port != UDP_PORT_LISTEN_ALL && ntohs(udp_head->source) != g_udp_port) {
         syslog_or_print(LOG_WARNING, "dropped %s wrong UDP port %d packet from %s",
-                        sock_descr, ntohs(udp_head->uh_dport), results->saddr_descr);
+                        sock_descr, ntohs(udp_head->dest), results->saddr_descr);
         return 0;
     }
 
-    if (ntohs(udp_head->uh_ulen) < WOL_MIN_UDP_SIZE) {
+    if (ntohs(udp_head->len) < WOL_MIN_UDP_SIZE) {
         syslog_or_print(LOG_WARNING, "dropped %s packet with wrong size %d-byte packet from %s",
-                        sock_descr, ntohs(udp_head->uh_ulen), results->saddr_descr);
+                        sock_descr, ntohs(udp_head->len), results->saddr_descr);
         return 0;
     }
 

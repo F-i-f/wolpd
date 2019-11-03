@@ -1,5 +1,9 @@
 2019-11-02  Philippe Troin  <phil@fifi.org>
 
+	* wolpd.c (validate_udp_packet): Use SysV struct udphdr members
+	(source/dest/len) instead of BSD ones (uh_([ds]port/ulen)) for
+	compatibility with RHEL6.
+
 	* wolpd.spec (BuildRequires): Add gcc.
 
 	* Makefile.am (unitpath): Default to @prefix@/lib/systemd/system
