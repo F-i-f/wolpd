@@ -1,5 +1,5 @@
 Name:		wolpd
-Version:	1.0.5
+Version:	1.0.6
 Release:	1%{?dist}
 Summary:	Wake-On-Lan Proxy Daemon
 
@@ -96,6 +96,11 @@ fi
 %dir %{_localstatedir}/empty/%{name}
 
 %changelog
+* Thu Nov 14 2019 Philippe Troin <phil@fifi.org> - 1.0.6-1
+- Upstream release 1.0.5:
+- Fix regression introduced in 1.0.5, where UDP packets would be
+  dropped if --port was specified.
+
 * Sat Nov  2 2019 Philippe Troin <phil@fifi.org> - 1.0.5-1
 - Upstream release 1.0.5:
 - Use more compatible struct udphdr member names.
