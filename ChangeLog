@@ -1,3 +1,8 @@
+2019-11-13  Philippe Troin  <phil@fifi.org>
+
+	* wolpd.c (validate_udp_packet): Fix UDP port check, regression
+	introduced in eb5c141db055f08c0ba8fe979c910456dd3e7687.
+
 2019-11-02  Philippe Troin  <phil@fifi.org>
 
 	* NEWS, README.md, configure.ac, wolpd.8*, wolpd.spec: Update for

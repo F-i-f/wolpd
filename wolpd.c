@@ -966,7 +966,7 @@ int validate_udp_packet(struct validate_results *results,
         return 0;
     }
 
-    if (g_udp_port != UDP_PORT_LISTEN_ALL && ntohs(udp_head->source) != g_udp_port) {
+    if (g_udp_port != UDP_PORT_LISTEN_ALL && ntohs(udp_head->dest) != g_udp_port) {
         syslog_or_print(LOG_WARNING, "dropped %s wrong UDP port %d packet from %s",
                         sock_descr, ntohs(udp_head->dest), results->saddr_descr);
         return 0;
