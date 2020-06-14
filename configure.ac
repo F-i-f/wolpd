@@ -1,7 +1,7 @@
 #  wolpd - Wake-On-LAN Proxy Daemon
 #  configure.ac
 #  Copyright (C) 2010  Federico Simoncelli <federico.simoncelli@gmail.com>
-#  Copyright (C) 2019  Philippe Troin (F-i-f onj GitHub)
+#  Copyright (C) 2019, 2020  Philippe Troin (F-i-f on GitHub)
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT([wolpd], [1.0.6], [https://github.com/F-i-f/wolpd/issues])
+AC_INIT([wolpd], [1.0.7], [https://github.com/F-i-f/wolpd/issues])
 AC_CONFIG_AUX_DIR([config.aux])
 FI_PROJECT()
 

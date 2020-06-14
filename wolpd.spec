@@ -1,5 +1,5 @@
 Name:		wolpd
-Version:	1.0.6
+Version:	1.0.7
 Release:	1%{?dist}
 Summary:	Wake-On-Lan Proxy Daemon
 
@@ -96,8 +96,12 @@ fi
 %dir %{_localstatedir}/empty/%{name}
 
 %changelog
+* Sun Jun 14 2020 Philippe Troin <phil@fifi.org> - 1.0.7-1
+- Upstream release 1.0.7:
+- Handle WOL packets not sent to the broadcast address.
+
 * Thu Nov 14 2019 Philippe Troin <phil@fifi.org> - 1.0.6-1
-- Upstream release 1.0.5:
+- Upstream release 1.0.6:
 - Fix regression introduced in 1.0.5, where UDP packets would be
   dropped if --port was specified.
 

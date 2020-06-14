@@ -1,5 +1,10 @@
 -*- outline -*-
 
+* Release 1.0.7
+June 14, 2020.
+
+- Handle WOL packets not sent to the broadcast address.
+
 * Release 1.0.6
 November 13, 2019.
 
