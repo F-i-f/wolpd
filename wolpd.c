@@ -1,6 +1,6 @@
 /* wolpd - Wake-On-LAN Proxy Daemon
  * Copyright (C) 2010  Federico Simoncelli <federico.simoncelli@gmail.com>
- * Copyright (C) 2019  Philippe Troin (F-i-f onj GitHub)
+ * Copyright (C) 2019, 2020  Philippe Troin (F-i-f on GitHub)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,6 +82,7 @@ struct validate_results {
  * Globals
 */
 const uint8_t wol_magic[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+const uint8_t *g_eth_bcast = wol_magic;
 
 const int handled_signals[] = { SIGINT, SIGQUIT, SIGTERM, SIGHUP, 0 };
 
@@ -808,7 +809,7 @@ int forward_packets(int in_sock, const
     struct eth_frame        wol_msg;
     struct validate_results validation_results;
     ssize_t                 wol_len, sent_len;
-    int                     i, mismatch;
+    int                     i, mismatch, changed_eth_dst;
 
     while (1) {
 
@@ -862,6 +863,14 @@ int forward_packets(int in_sock, const
         if (mismatch)
             continue;
 
+        changed_eth_dst = 0;
+        if (   memcmp(wol_msg.head.h_dest, validation_results.payload + ETH_ALEN, ETH_ALEN)
+            && memcmp(wol_msg.head.h_dest, g_eth_bcast, ETH_ALEN)) {
+            /* Target MAC address is wrong */
+            memcpy(wol_msg.head.h_dest, validation_results.payload + ETH_ALEN, ETH_ALEN);
+            changed_eth_dst = 1;
+        }
+
     send_again:
         if ((sent_len = sendto(out_sock, &wol_msg, (size_t) wol_len, 0,
                                (const struct sockaddr *) dst_addr, sizeof(*dst_addr))) < 0) {
@@ -876,7 +885,7 @@ int forward_packets(int in_sock, const
             }
         }
 
-        syslog_or_print(LOG_NOTICE, "magic %s packet from %s to %s WOL %02x:%02x:%02x:%02x:%02x:%02x forwarded",
+        syslog_or_print(LOG_NOTICE, "magic %s packet from %s to %s WOL %02x:%02x:%02x:%02x:%02x:%02x forwarded%s",
                         in_sock_descr,
                         validation_results.saddr_descr,
                         validation_results.daddr_descr,
@@ -885,7 +894,8 @@ int forward_packets(int in_sock, const
                         ((unsigned char*)(validation_results.payload + ETH_ALEN))[2],
                         ((unsigned char*)(validation_results.payload + ETH_ALEN))[3],
                         ((unsigned char*)(validation_results.payload + ETH_ALEN))[4],
-                        ((unsigned char*)(validation_results.payload + ETH_ALEN))[5]);
+                        ((unsigned char*)(validation_results.payload + ETH_ALEN))[5],
+                        changed_eth_dst ? " (destination Ethernet address updated)" : "");
 
         if (wol_len != sent_len) {
             syslog_or_print(LOG_WARNING, "short write: %u/%u bytes sent when forwarding %s packet from %s",

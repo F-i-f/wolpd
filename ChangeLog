@@ -1,3 +1,10 @@
+2020-06-14  Philippe Troin  <phil@fifi.org>
+
+	* wolpd.c (g_eth_bcast): Add.
+	(forward_packets): Rewrite the destination MAC address if it is
+	not either the Ethernet broadcast address or if is not the WOL
+	target MAC address.
+
 2019-11-13  Philippe Troin  <phil@fifi.org>
 
 	* NEWS, README.md, configure.ac, wolpd.8*, wolpd.spec: Update for
